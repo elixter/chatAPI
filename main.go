@@ -43,5 +43,8 @@ func main() {
 
 	e.GET("/ws", hub.WsHandler)
 
+	// TODO : Redis cluster와 연결된 AMQP에서 메세지가 들어오면
+	// TODO : 해당 메세지의 RoomId가 서버에 있을 경우 해당 Room의 클라이언트들에게 broadcasting
+
 	e.Logger.Fatal(e.Start(":8080"))
 }
