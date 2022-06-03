@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/labstack/echo/v4"
 	"log"
-	"math/rand"
 	"net/http"
 )
 
@@ -19,14 +18,14 @@ func NewHub() *Hub {
 
 func (h *Hub) WsHandler(c echo.Context) error {
 
-	roomId := rand.Int63n(100)
+	roomId := int64(1234)
 	if _, ok := h.rooms[roomId]; !ok {
 		h.rooms[roomId] = newRoom(roomId)
 		go h.rooms[roomId].run()
 	}
 	serveWs(h.rooms[roomId], c.Response().Writer, c.Request())
 
-	return c.NoContent(http.StatusNoContent)
+	return c.NoContent(http.StatusOK)
 }
 
 // serveWs handles websocket requests from the peer.

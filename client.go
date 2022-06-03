@@ -72,20 +72,21 @@ func (c *Client) readPump() {
 
 	for {
 		_, message, err := c.conn.ReadMessage()
+		logger.Log.Info("reading")
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				logger.Log.Errorf("error: %v", err)
 			}
 			break
 		}
-		readMessage := model.Message{}
-		err = json.Unmarshal(message, &readMessage)
-		if err != nil {
-			logger.Log.Errorf("message unmarshalling error : [%v]", err)
-		}
-		logger.Log.Debug(readMessage)
 
-		c.room.broadcast <- message
+		broadcastMsg, err := messageProcessing(message)
+		if err != nil {
+			logger.Log.Errorf("message processing error : [%v]", err)
+			continue
+		}
+
+		c.room.broadcast <- broadcastMsg
 	}
 }
 
@@ -134,4 +135,24 @@ func (c *Client) writePump() {
 			}
 		}
 	}
+}
+
+func messageProcessing(message []byte) ([]byte, error) {
+	readMessage := model.ClientMessage{}
+	err := json.Unmarshal(message, &readMessage)
+	if err != nil {
+		logger.Log.Errorf("message unmarshalling error : [%v]", err)
+		return nil, err
+	}
+	logger.Log.Debug(readMessage)
+
+	// TODO : send message to Redis cluster
+
+	sentData, err := json.Marshal(readMessage)
+	if err != nil {
+		logger.Log.Errorf("message marshalling error : [%v]", err)
+		return nil, err
+	}
+
+	return sentData, nil
 }
