@@ -23,7 +23,14 @@
                 if (!msg.value) {
                     return false;
                 }
-                conn.send(msg.value);
+                message = {
+                    message_type: "chat_txt",
+                    author_id: 11,
+                    room_id: 12323,
+                    content: msg.value,
+                }
+                console.log(message)
+                conn.send(JSON.stringify(message));
                 msg.value = "";
                 return false;
             };
@@ -36,7 +43,9 @@
                     appendLog(item);
                 };
                 conn.onmessage = function (evt) {
-                    var messages = evt.data.split('\n');
+                    msg = JSON.parse(evt.data)
+                    console.log("reading : ", msg)
+                    var messages = msg.content.split('\n');
                     for (var i = 0; i < messages.length; i++) {
                         var item = document.createElement("div");
                         item.innerText = messages[i];

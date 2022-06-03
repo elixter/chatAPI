@@ -1,8 +1,6 @@
 package main
 
-import (
-	"fmt"
-)
+import "chatting/logger"
 
 type Hub struct {
 	// Registered clients.
@@ -28,9 +26,7 @@ func newHub() *Hub {
 }
 
 func (h *Hub) run() {
-	cnt := 1
 	for {
-		fmt.Println("loop", cnt)
 		select {
 		case client := <-h.register:
 			h.clients[client] = true
@@ -44,11 +40,11 @@ func (h *Hub) run() {
 				select {
 				case client.send <- message:
 				default:
+					logger.Log.Info("close client...")
 					close(client.send)
 					delete(h.clients, client)
 				}
 			}
 		}
-		cnt += 1
 	}
 }

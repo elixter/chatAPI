@@ -1,9 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"chatting/logger"
+	"chatting/model"
+	"encoding/json"
 	"github.com/gorilla/websocket"
+	"github.com/labstack/gommon/bytes"
 	"log"
 	"net/http"
 	"time"
@@ -20,7 +22,7 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 
 	// Maximum message size allowed from peer.
-	maxMessageSize = 1024
+	maxMessageSize = bytes.MB
 )
 
 var (
@@ -71,11 +73,17 @@ func (c *Client) readPump() {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				logger.Log.Errorf("error: %v", err)
 			}
 			break
 		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
+		readMessage := model.Message{}
+		err = json.Unmarshal(message, &readMessage)
+		if err != nil {
+			logger.Log.Errorf("message unmarshalling error : [%v]", err)
+		}
+		logger.Log.Debug(readMessage)
+
 		c.hub.broadcast <- message
 	}
 }
@@ -94,7 +102,6 @@ func (c *Client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.send:
-			logger.Log.Infof("Message at writePump : [%s]", message)
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
@@ -106,11 +113,11 @@ func (c *Client) writePump() {
 			if err != nil {
 				return
 			}
+
 			w.Write(message)
 
 			// Add queued chat messages to the current websocket message.
 			n := len(c.send)
-			log.Println(n)
 			for i := 0; i < n; i++ {
 				w.Write(newline)
 				w.Write(<-c.send)
