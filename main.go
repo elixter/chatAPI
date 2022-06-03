@@ -32,9 +32,7 @@ func main() {
 	e := echo.New()
 	e.Logger.SetLevel(log2.DEBUG)
 	logger.New(e.Logger)
-	hub := newHub()
-
-	go hub.run()
+	hub := NewHub()
 
 	e.GET("/", func(c echo.Context) error {
 		logger.Log.Info("test")
@@ -43,11 +41,7 @@ func main() {
 		return nil
 	})
 
-	e.GET("/ws", func(c echo.Context) error {
-		serveWs(hub, c.Response().Writer, c.Request())
-
-		return nil
-	})
+	e.GET("/ws", hub.WsHandler)
 
 	e.Logger.Fatal(e.Start(":8080"))
 }
