@@ -1,7 +1,10 @@
 package main
 
 import (
+	"chatting/logger"
 	"flag"
+	"github.com/labstack/echo/v4"
+	log2 "github.com/labstack/gommon/log"
 	"log"
 	"net/http"
 )
@@ -25,15 +28,26 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	flag.Parse()
+
+	e := echo.New()
+	e.Logger.SetLevel(log2.DEBUG)
+	logger.New(e.Logger)
 	hub := newHub()
+
 	go hub.run()
-	http.HandleFunc("/", serveHome)
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(hub, w, r)
+
+	e.GET("/", func(c echo.Context) error {
+		logger.Log.Info("test")
+		logger.Log.Debug("tetggggggg")
+		serveHome(c.Response().Writer, c.Request())
+		return nil
 	})
-	err := http.ListenAndServe("localhost:8080", nil)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
-	}
+
+	e.GET("/ws", func(c echo.Context) error {
+		serveWs(hub, c.Response().Writer, c.Request())
+
+		return nil
+	})
+
+	e.Logger.Fatal(e.Start(":8080"))
 }

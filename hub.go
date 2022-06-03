@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 )
 
 type Hub struct {
@@ -41,7 +40,6 @@ func (h *Hub) run() {
 				close(client.send)
 			}
 		case message := <-h.broadcast:
-			log.Println("message: ", message)
 			for client := range h.clients {
 				select {
 				case client.send <- message:

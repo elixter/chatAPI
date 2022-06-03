@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"chatting/logger"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
@@ -93,7 +94,7 @@ func (c *Client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.send:
-			log.Println("Message at writePump: ", message)
+			logger.Log.Infof("Message at writePump : [%s]", message)
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
