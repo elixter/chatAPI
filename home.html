@@ -17,22 +17,25 @@
             }
 
             document.getElementById("form").onsubmit = function () {
+                console.log("msg.value : ", msg);
+                console.log("submit!");
                 if (!conn) {
+                    console.log("disconnected");
                     return false;
                 }
                 if (!msg.value) {
+                    console.log("no message value");
                     return false;
                 }
-                message = {
+
+                conn.send(JSON.stringify({
                     message_type: "chat_txt",
                     author_id: 11,
                     room_id: 12323,
                     content: msg.value,
-                }
-                jMessage = JSON.stringify(message);
-
-                conn.send(jMessage);
+                }));
                 msg.value = "";
+
                 return false;
             };
 
@@ -44,11 +47,11 @@
                     appendLog(item);
                 };
                 conn.onmessage = function (evt) {
-                    msg = JSON.parse(evt.data)
-                    console.log("reading : ", msg)
-                    var messages = msg.content.split('\n');
+                    receivedMsg = JSON.parse(evt.data)
+                    console.log("reading : ", receivedMsg)
+                    var messages = receivedMsg.content.split('\n');
                     for (var i = 0; i < messages.length; i++) {
-                        console.log("looping");
+                        console.log("looping ", i);
                         var item = document.createElement("div");
                         item.innerText = messages[i];
                         appendLog(item);
