@@ -1,4 +1,4 @@
-package redisCluster
+package storageCluster
 
 import (
 	"context"
