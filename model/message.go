@@ -17,7 +17,7 @@ type Message struct {
 	MessageType MessageType `json:"message_type"`
 	AuthorId    int64       `json:"author_id"`
 	RoomId      int64       `json:"room_id"`
-	Content     []byte      `json:"content"`
+	Content     string      `json:"content"`
 	CreateAt    time.Time   `json:"create_at"`
 }
 

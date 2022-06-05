@@ -1,8 +1,10 @@
 package repository
 
 import (
+	"chatting/config"
 	"chatting/logger"
 	"chatting/model"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 )
@@ -16,7 +18,8 @@ type MySqlMessageRepository struct {
 }
 
 func New() *MySqlMessageRepository {
-	conn, err := sqlx.Connect("mysql", "")
+
+	conn, err := sqlx.Connect("mysql", getDatasource())
 	if err != nil {
 		logger.Log.Panicf("open mysql failed: [%v]", err)
 	}
@@ -26,7 +29,21 @@ func New() *MySqlMessageRepository {
 	}
 }
 
+func getDatasource() string {
+	dbConfig := config.Config().GetStringMapString("db")
+
+	return fmt.Sprintf(
+		"%s:%s@(%s:%s)/%s?parseTime=true&charset=utf8mb4",
+		dbConfig["id"],
+		dbConfig["password"],
+		dbConfig["host"],
+		dbConfig["port"],
+		dbConfig["database"],
+	)
+}
+
 func (m *MySqlMessageRepository) Save(message model.Message) error {
-	_, err := m.db.Exec(insertMessage, message)
+
+	_, err := m.db.NamedExec(insertMessage, message)
 	return err
 }
