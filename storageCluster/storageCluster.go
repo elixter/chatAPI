@@ -1,6 +1,8 @@
 package storageCluster
 
-import "chatting/model"
+import (
+	"chatting/model"
+)
 
 type StorageCluster interface {
 	Receive() error

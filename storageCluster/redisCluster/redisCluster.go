@@ -63,6 +63,11 @@ func getMqSource() string {
 	)
 }
 
+func (rc *RedisCluster) Receive() error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (rc *RedisCluster) Listen() error {
 	queueName := config.Config().GetString("mq.listeningQueueName")
 
