@@ -119,4 +119,5 @@ func (rc *RedisCluster) Close() {
 	rc.redisClient.Close()
 	rc.mqChan.Close()
 	rc.mqConn.Close()
+	rc.repository.Close()
 }

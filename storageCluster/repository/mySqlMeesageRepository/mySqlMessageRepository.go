@@ -49,3 +49,7 @@ func (m *MySqlMessageRepository) Save(message model.Message) error {
 	_, err := m.db.NamedExec(insertMessage, message)
 	return err
 }
+
+func (m *MySqlMessageRepository) Close() {
+	m.db.Close()
+}
