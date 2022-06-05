@@ -9,6 +9,8 @@ import (
 
 func TestRedisCluster_Listen(t *testing.T) {
 	rc := New(mySqlMeesageRepository.New())
+	defer rc.Close()
+
 	t.Run("Listening test", func(t *testing.T) {
 		if err := rc.Listen(); err != nil {
 			t.Errorf("Listen() error = %v", err)
@@ -26,6 +28,8 @@ func TestRedisCluster_SaveToRDB(t *testing.T) {
 	}
 
 	rc := New(mySqlMeesageRepository.New())
+	defer rc.Close()
+
 	t.Run("SaveToRDB test", func(t *testing.T) {
 		err := rc.SaveToRDB(message)
 		if err != nil {
@@ -36,6 +40,8 @@ func TestRedisCluster_SaveToRDB(t *testing.T) {
 
 func TestRedisCluster_Synchronize(t *testing.T) {
 	rc := New(mySqlMeesageRepository.New())
+	defer rc.Close()
+
 	t.Run("Synchronize test", func(t *testing.T) {
 		err := rc.Synchronize()
 		if err != nil {

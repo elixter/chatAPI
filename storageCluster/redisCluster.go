@@ -1,10 +1,12 @@
 package storageCluster
 
 import (
+	"chatting/config"
 	"chatting/logger"
 	"chatting/model"
 	"chatting/storageCluster/repository"
 	"encoding/json"
+	"fmt"
 	"github.com/go-redis/redis/v8"
 	"github.com/streadway/amqp"
 )
@@ -12,37 +14,58 @@ import (
 type RedisCluster struct {
 	redisClient *redis.Client
 	mqConn      *amqp.Connection
+	mqChan      *amqp.Channel
 	repository  repository.MessageRepository
 }
 
 func New(repository repository.MessageRepository) RedisCluster {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     getRedisSource(),
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})
 
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	conn, err := amqp.Dial(getMqSource())
 	if err != nil {
 		logger.Log.Panicf("connect with message queue failed : [%v]", err)
+	}
+
+	ch, err := conn.Channel()
+	if err != nil {
+		logger.Log.Panicf("open message queue channel failed : [%v]", err)
 	}
 
 	return RedisCluster{
 		redisClient: rdb,
 		mqConn:      conn,
+		mqChan:      ch,
 		repository:  repository,
 	}
 }
 
-func (rc *RedisCluster) Listen() error {
-	ch, err := rc.mqConn.Channel()
-	if err != nil {
-		logger.Log.Errorf("open message queue channel failed : [%v]", err)
-		return err
-	}
+func getRedisSource() string {
+	redisConfig := config.Config().GetStringMapString("redis")
+	return fmt.Sprintf(
+		"%s:%s",
+		redisConfig["host"],
+		redisConfig["port"],
+	)
+}
 
-	msgs, err := ch.Consume(
-		"queue name",
+func getMqSource() string {
+	mqConfig := config.Config().GetStringMapString("mq")
+	return fmt.Sprintf(
+		"amqp://%s:%s@%s:%s/",
+		mqConfig["id"],
+		mqConfig["password"],
+		mqConfig["host"],
+		mqConfig["port"],
+	)
+}
+
+func (rc *RedisCluster) Listen() error {
+	msgs, err := rc.mqChan.Consume(
+		"chat",
 		"",
 		true,
 		false,
@@ -94,5 +117,6 @@ func (rc *RedisCluster) SaveToRDB(message model.Message) error {
 
 func (rc *RedisCluster) Close() {
 	rc.redisClient.Close()
+	rc.mqChan.Close()
 	rc.mqConn.Close()
 }
