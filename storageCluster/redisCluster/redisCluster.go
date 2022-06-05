@@ -64,8 +64,10 @@ func getMqSource() string {
 }
 
 func (rc *RedisCluster) Listen() error {
+	queueName := config.Config().GetString("mq.listeningQueueName")
+
 	msgs, err := rc.mqChan.Consume(
-		"chat",
+		queueName,
 		"",
 		true,
 		false,
