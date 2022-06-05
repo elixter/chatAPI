@@ -15,7 +15,7 @@ type RedisCluster struct {
 	repository  repository.MessageRepository
 }
 
-func New() RedisCluster {
+func New(repository repository.MessageRepository) RedisCluster {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "", // no password set
@@ -30,6 +30,7 @@ func New() RedisCluster {
 	return RedisCluster{
 		redisClient: rdb,
 		mqConn:      conn,
+		repository:  repository,
 	}
 }
 
@@ -82,7 +83,8 @@ func (rc *RedisCluster) Listen() error {
 
 func (rc *RedisCluster) Synchronize() error {
 	//TODO : Synchronizing with other server
-	panic("implement me")
+	logger.Log.Info("sync!")
+	return nil
 }
 
 func (rc *RedisCluster) SaveToRDB(message model.Message) error {

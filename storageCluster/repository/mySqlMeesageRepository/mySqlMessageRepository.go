@@ -1,4 +1,4 @@
-package repository
+package mySqlMeesageRepository
 
 import (
 	"chatting/config"
@@ -23,6 +23,8 @@ func New() *MySqlMessageRepository {
 	if err != nil {
 		logger.Log.Panicf("open mysql failed: [%v]", err)
 	}
+	conn.SetMaxIdleConns(10)
+	conn.SetMaxOpenConns(20)
 
 	return &MySqlMessageRepository{
 		db: conn,

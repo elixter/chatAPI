@@ -4,7 +4,6 @@ import (
 	"chatting/logger"
 	"flag"
 	"github.com/labstack/echo/v4"
-	log2 "github.com/labstack/gommon/log"
 	"log"
 	"net/http"
 )
@@ -30,8 +29,7 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 func main() {
 
 	e := echo.New()
-	e.Logger.SetLevel(log2.DEBUG)
-	logger.New(e.Logger)
+	e.Logger = logger.Log
 	hub := NewHub()
 
 	e.GET("/", func(c echo.Context) error {

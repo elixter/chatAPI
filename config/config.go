@@ -1,15 +1,6 @@
 package config
 
 import (
-	"chatting/logger"
-	"github.com/labstack/gommon/log"
-	"github.com/spf13/viper"
-)
-
-package config
-
-import (
-	"ImageRemover/logging"
 	"github.com/spf13/viper"
 )
 
@@ -24,9 +15,9 @@ func init() {
 	err := vp.ReadInConfig()
 	if err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			logger.Log.Errorf("Config file not found - file name : [%s]", vp.ConfigFileUsed())
+			panic("Config file not found")
 		} else {
-			log.Error(err)
+			panic(err)
 		}
 	}
 	instance = vp
