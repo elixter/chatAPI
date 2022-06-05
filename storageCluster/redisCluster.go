@@ -3,16 +3,16 @@ package storageCluster
 import (
 	"chatting/logger"
 	"chatting/model"
+	"chatting/storageCluster/repository"
 	"encoding/json"
 	"github.com/go-redis/redis/v8"
-	"github.com/jmoiron/sqlx"
 	"github.com/streadway/amqp"
 )
 
 type RedisCluster struct {
 	redisClient *redis.Client
 	mqConn      *amqp.Connection
-	rdbConn     *sqlx.DB
+	repository  repository.MessageRepository
 }
 
 func New() RedisCluster {
@@ -87,7 +87,7 @@ func (rc *RedisCluster) Synchronize() error {
 
 func (rc *RedisCluster) SaveToRDB(message model.Message) error {
 	//TODO : save Message to rdb
-	panic("implement me")
+	return rc.repository.Save(message)
 }
 
 func (rc *RedisCluster) Close() {
