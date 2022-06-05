@@ -1,9 +1,14 @@
 package main
 
 import (
-	"bytes"
+	"chatting/config"
+	"chatting/logger"
+	"chatting/model"
+	"encoding/json"
 	"github.com/gorilla/websocket"
-	"log"
+	"github.com/labstack/gommon/bytes"
+	"github.com/labstack/gommon/random"
+	"github.com/streadway/amqp"
 	"net/http"
 	"time"
 )
@@ -19,7 +24,7 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 
 	// Maximum message size allowed from peer.
-	maxMessageSize = 1024
+	maxMessageSize = bytes.MB
 )
 
 var (
@@ -35,9 +40,11 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// Client is a middleman between the websocket connection and the hub.
+// Client is a middleman between the websocket connection and the room.
 type Client struct {
-	hub *Hub
+	id int64
+
+	room *room
 
 	// The websocket connection.
 	conn *websocket.Conn
@@ -46,14 +53,14 @@ type Client struct {
 	send chan []byte
 }
 
-// readPump pumps messages from the websocket connection to the hub.
+// readPump pumps messages from the websocket connection to the room.
 //
 // The application runs readPump in a per-connection goroutine. The application
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
 func (c *Client) readPump() {
 	defer func() {
-		c.hub.unregister <- c
+		c.room.unregister <- c
 		c.conn.Close()
 	}()
 
@@ -68,18 +75,25 @@ func (c *Client) readPump() {
 
 	for {
 		_, message, err := c.conn.ReadMessage()
+		logger.Log.Info("reading")
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				logger.Log.Errorf("error: %v", err)
 			}
 			break
 		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		c.hub.broadcast <- message
+
+		broadcastMsg, err := messageProcessing(message)
+		if err != nil {
+			logger.Log.Errorf("message processing error : [%v]", err)
+			continue
+		}
+
+		c.room.broadcast <- broadcastMsg
 	}
 }
 
-// writePump pumps messages from the hub to the websocket connection.
+// writePump pumps messages from the room to the websocket connection.
 //
 // A goroutine running writePump is started for each connection. The
 // application ensures that there is at most one writer to a connection by
@@ -93,10 +107,9 @@ func (c *Client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.send:
-			log.Println("Message at writePump: ", message)
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				// The hub closed the channel.
+				// The room closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
@@ -105,11 +118,11 @@ func (c *Client) writePump() {
 			if err != nil {
 				return
 			}
+
 			w.Write(message)
 
 			// Add queued chat messages to the current websocket message.
 			n := len(c.send)
-			log.Println(n)
 			for i := 0; i < n; i++ {
 				w.Write(newline)
 				w.Write(<-c.send)
@@ -127,18 +140,50 @@ func (c *Client) writePump() {
 	}
 }
 
-// serveWs handles websocket requests from the peer.
-func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+func messageProcessing(message []byte) ([]byte, error) {
+	readMessage := model.ClientMessage{}
+	err := json.Unmarshal(message, &readMessage)
 	if err != nil {
-		log.Println(err)
-		return
+		logger.Log.Errorf("message unmarshalling error : [%v]", err)
+		return nil, err
 	}
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
-	client.hub.register <- client
+	logger.Log.Debug(readMessage)
+	result := model.Message{
+		MessageType: readMessage.MessageType,
+		AuthorId:    readMessage.AuthorId,
+		RoomId:      readMessage.RoomId,
+		Content:     string(readMessage.Content)[1 : len(readMessage.Content)-1],
+		CreateAt:    readMessage.CreateAt.UTC(),
+	}
 
-	// Allow collection of memory referenced by the caller by doing all work in
-	// new goroutines.
-	go client.writePump()
-	go client.readPump()
+	sentData, err := json.Marshal(result)
+	if err != nil {
+		logger.Log.Errorf("message marshalling error : [%v]", err)
+		return nil, err
+	}
+
+	// TODO : send message to Redis cluster
+	conn, err := amqp.Dial(getMqSource())
+	if err != nil {
+		logger.Log.Panicf("connect with message queue failed : [%v]", err)
+	}
+
+	channel, err := conn.Channel()
+
+	requestId := random.String(32)
+	payload := amqp.Publishing{
+		DeliveryMode:  amqp.Persistent,
+		ContentType:   "application/json",
+		CorrelationId: requestId,
+		Body:          sentData,
+	}
+
+	queueName := config.Config().GetString("mq.listeningQueueName")
+
+	err = channel.Publish("", queueName, false, false, payload)
+	if err != nil {
+		logger.Log.Errorf("publish failed : [%v]", err)
+	}
+
+	return sentData, nil
 }

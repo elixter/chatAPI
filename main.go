@@ -1,15 +1,13 @@
 package main
 
 import (
-	"flag"
+	"chatting/logger"
+	"chatting/storageCluster/redisCluster"
+	"chatting/storageCluster/repository/mySqlMeesageRepository"
+	"github.com/labstack/echo/v4"
 	"log"
 	"net/http"
 )
-
-// TODO: 서버가 재시작 되어도 채팅방은 어떻게 유지시킬것인가
-// TODO: 메세지는 어떻게 저장할것인가
-
-var addr = flag.String("addr", ":8080", "http service address")
 
 func serveHome(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.URL)
@@ -25,15 +23,27 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	flag.Parse()
-	hub := newHub()
-	go hub.run()
-	http.HandleFunc("/", serveHome)
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(hub, w, r)
+
+	e := echo.New()
+	e.Logger = logger.Log
+	hub := NewHub()
+
+	cluster := redisCluster.New(mySqlMeesageRepository.New())
+	defer cluster.Close()
+	go func() {
+		err := cluster.Listen()
+		if err != nil {
+			logger.Log.Panicf("cluster listening failed : [%v]", err)
+		}
+	}()
+
+	e.GET("/", func(c echo.Context) error {
+		logger.Log.Info("test")
+		logger.Log.Debug("tetggggggg")
+		serveHome(c.Response().Writer, c.Request())
+		return nil
 	})
-	err := http.ListenAndServe("localhost:8080", nil)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
-	}
+
+	e.GET("/ws", hub.WsHandler)
+	e.Logger.Fatal(e.Start(":8080"))
 }

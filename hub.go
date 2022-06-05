@@ -1,56 +1,46 @@
 package main
 
 import (
-	"fmt"
+	"github.com/labstack/echo/v4"
 	"log"
+	"net/http"
 )
 
 type Hub struct {
-	// Registered clients.
-	clients map[*Client]bool
-
-	// Inbound messages from the clients.
-	broadcast chan []byte
-
-	// Register requests from the clients.
-	register chan *Client
-
-	// Unregister requests from clients.
-	unregister chan *Client
+	rooms map[int64]*room
 }
 
-func newHub() *Hub {
+func NewHub() *Hub {
 	return &Hub{
-		broadcast:  make(chan []byte),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		clients:    make(map[*Client]bool),
+		rooms: make(map[int64]*room),
 	}
 }
 
-func (h *Hub) run() {
-	cnt := 1
-	for {
-		fmt.Println("loop", cnt)
-		select {
-		case client := <-h.register:
-			h.clients[client] = true
-		case client := <-h.unregister:
-			if _, ok := h.clients[client]; ok {
-				delete(h.clients, client)
-				close(client.send)
-			}
-		case message := <-h.broadcast:
-			log.Println("message: ", message)
-			for client := range h.clients {
-				select {
-				case client.send <- message:
-				default:
-					close(client.send)
-					delete(h.clients, client)
-				}
-			}
-		}
-		cnt += 1
+func (h *Hub) WsHandler(c echo.Context) error {
+
+	roomId := int64(1234)
+	if _, ok := h.rooms[roomId]; !ok {
+		h.rooms[roomId] = newRoom(roomId)
+		go h.rooms[roomId].run()
 	}
+	serveWs(h.rooms[roomId], c.Response().Writer, c.Request())
+
+	return c.NoContent(http.StatusOK)
+}
+
+// serveWs handles websocket requests from the peer.
+func serveWs(room *room, w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	client := &Client{room: room, conn: conn, send: make(chan []byte, 256)}
+	client.room.register <- client
+
+	// Allow collection of memory referenced by the caller by doing all work in
+	// new goroutines.
+	go client.writePump()
+	go client.readPump()
 }
