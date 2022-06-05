@@ -1,31 +1,23 @@
-package redisCluster
+package mqSynchronizer
 
 import (
 	"chatting/config"
 	"chatting/logger"
 	"chatting/model"
-	"chatting/storageCluster/repository"
+	"chatting/synhronizer/repository"
 	"encoding/json"
 	"fmt"
-	"github.com/go-redis/redis/v8"
 	"github.com/labstack/gommon/random"
 	"github.com/streadway/amqp"
 )
 
-type RedisCluster struct {
-	redisClient *redis.Client
-	mqConn      *amqp.Connection
-	mqChan      *amqp.Channel
-	repository  repository.MessageRepository
+type MqSynchronizer struct {
+	mqConn     *amqp.Connection
+	mqChan     *amqp.Channel
+	repository repository.MessageRepository
 }
 
-func New(repository repository.MessageRepository) RedisCluster {
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     getRedisSource(),
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
-
+func New(repository repository.MessageRepository) MqSynchronizer {
 	conn, err := amqp.Dial(getMqSource())
 	if err != nil {
 		logger.Log.Panicf("connect with message queue failed : [%v]", err)
@@ -36,11 +28,10 @@ func New(repository repository.MessageRepository) RedisCluster {
 		logger.Log.Panicf("open message queue channel failed : [%v]", err)
 	}
 
-	return RedisCluster{
-		redisClient: rdb,
-		mqConn:      conn,
-		mqChan:      ch,
-		repository:  repository,
+	return MqSynchronizer{
+		mqConn:     conn,
+		mqChan:     ch,
+		repository: repository,
 	}
 }
 
@@ -64,12 +55,12 @@ func getMqSource() string {
 	)
 }
 
-func (rc *RedisCluster) Receive() error {
+func (rc *MqSynchronizer) Receive() error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (rc *RedisCluster) Listen() error {
+func (rc *MqSynchronizer) Listen() error {
 	queueName := config.Config().GetString("mq.listeningQueueName")
 
 	msgs, err := rc.mqChan.Consume(
@@ -112,7 +103,7 @@ func (rc *RedisCluster) Listen() error {
 	return nil
 }
 
-func (rc *RedisCluster) Synchronize(message []byte) error {
+func (rc *MqSynchronizer) Synchronize(message []byte) error {
 	requestId := random.String(32)
 	payload := amqp.Publishing{
 		DeliveryMode:  amqp.Persistent,
@@ -132,13 +123,12 @@ func (rc *RedisCluster) Synchronize(message []byte) error {
 	)
 }
 
-func (rc *RedisCluster) SaveToRDB(message model.Message) error {
+func (rc *MqSynchronizer) SaveToRDB(message model.Message) error {
 	//TODO : save Message to rdb
 	return rc.repository.Save(message)
 }
 
-func (rc *RedisCluster) Close() {
-	rc.redisClient.Close()
+func (rc *MqSynchronizer) Close() {
 	rc.mqChan.Close()
 	rc.mqConn.Close()
 	rc.repository.Close()
