@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"chatting/logger"
 	"chatting/model"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -11,6 +13,17 @@ const (
 
 type MySqlMessageRepository struct {
 	db *sqlx.DB
+}
+
+func New() *MySqlMessageRepository {
+	conn, err := sqlx.Connect("mysql", "")
+	if err != nil {
+		logger.Log.Panicf("open mysql failed: [%v]", err)
+	}
+
+	return &MySqlMessageRepository{
+		db: conn,
+	}
 }
 
 func (m *MySqlMessageRepository) Save(message model.Message) error {
