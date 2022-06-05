@@ -1,10 +1,10 @@
-package storageCluster
+package synhronizer
 
 import (
 	"chatting/model"
 )
 
-type StorageCluster interface {
+type Synchronizer interface {
 	Receive() error
 	Synchronize([]byte) error
 	SaveToRDB(model.Message) error

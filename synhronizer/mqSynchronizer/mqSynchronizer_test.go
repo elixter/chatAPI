@@ -1,8 +1,8 @@
-package redisCluster
+package mqSynchronizer
 
 import (
 	"chatting/model"
-	"chatting/storageCluster/repository/mySqlMeesageRepository"
+	"chatting/synhronizer/repository/mySqlMeesageRepository"
 	"testing"
 	"time"
 )
