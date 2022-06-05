@@ -2,6 +2,8 @@ package main
 
 import (
 	"chatting/logger"
+	"chatting/storageCluster/redisCluster"
+	"chatting/storageCluster/repository/mySqlMeesageRepository"
 	"github.com/labstack/echo/v4"
 	"log"
 	"net/http"
@@ -25,6 +27,15 @@ func main() {
 	e := echo.New()
 	e.Logger = logger.Log
 	hub := NewHub()
+
+	cluster := redisCluster.New(mySqlMeesageRepository.New())
+	defer cluster.Close()
+	go func() {
+		err := cluster.Listen()
+		if err != nil {
+			logger.Log.Panicf("cluster listening failed : [%v]", err)
+		}
+	}()
 
 	e.GET("/", func(c echo.Context) error {
 		logger.Log.Info("test")
