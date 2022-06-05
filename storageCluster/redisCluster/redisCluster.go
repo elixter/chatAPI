@@ -1,4 +1,4 @@
-package storageCluster
+package redisCluster
 
 import (
 	"chatting/config"
