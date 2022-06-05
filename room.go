@@ -59,6 +59,7 @@ func (r *room) run() {
 		}
 		go func() {
 			for msg := range msgs {
+				// TODO: 발신지와 같은 서버인 경우 continue
 				r.broadcast <- msg.Body
 			}
 		}()
