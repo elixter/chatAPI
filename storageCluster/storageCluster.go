@@ -6,6 +6,7 @@ import (
 
 type StorageCluster interface {
 	Receive() error
-	Synchronize() error
+	Synchronize([]byte) error
 	SaveToRDB(model.Message) error
+	Close()
 }

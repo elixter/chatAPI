@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis/v8"
+	"github.com/labstack/gommon/random"
 	"github.com/streadway/amqp"
 )
 
@@ -87,12 +88,12 @@ func (rc *RedisCluster) Listen() error {
 
 	go func() {
 		for msg := range msgs {
-			go func() {
-				err := rc.Synchronize()
+			go func(message []byte) {
+				err := rc.Synchronize(message)
 				if err != nil {
 					logger.Log.Errorf("message synchronize failed : [%v]", err)
 				}
-			}()
+			}(msg.Body)
 
 			var body model.Message
 			err := json.Unmarshal(msg.Body, &body)
@@ -111,10 +112,24 @@ func (rc *RedisCluster) Listen() error {
 	return nil
 }
 
-func (rc *RedisCluster) Synchronize() error {
-	//TODO : Synchronizing with other server
-	logger.Log.Info("sync!")
-	return nil
+func (rc *RedisCluster) Synchronize(message []byte) error {
+	requestId := random.String(32)
+	payload := amqp.Publishing{
+		DeliveryMode:  amqp.Persistent,
+		ContentType:   "application/json",
+		CorrelationId: requestId,
+		Body:          message,
+	}
+
+	queueName := config.Config().GetString("mq.listeningQueueName")
+
+	return rc.mqChan.Publish(
+		"",
+		queueName,
+		false,
+		false,
+		payload,
+	)
 }
 
 func (rc *RedisCluster) SaveToRDB(message model.Message) error {

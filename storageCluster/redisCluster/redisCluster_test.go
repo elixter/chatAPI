@@ -43,7 +43,7 @@ func TestRedisCluster_Synchronize(t *testing.T) {
 	defer rc.Close()
 
 	t.Run("Synchronize test", func(t *testing.T) {
-		err := rc.Synchronize()
+		err := rc.Synchronize([]byte{})
 		if err != nil {
 			t.Errorf("Synchronize() error = %v", err)
 		}
