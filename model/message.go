@@ -26,5 +26,5 @@ type ClientMessage struct {
 	AuthorId    int64           `json:"author_id"`
 	RoomId      int64           `json:"room_id"`
 	Content     json.RawMessage `json:"content"`
-	CreateAt    int64           `json:"create_at"`
+	CreateAt    time.Time       `json:"create_at"`
 }

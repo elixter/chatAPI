@@ -148,6 +148,19 @@ func messageProcessing(message []byte) ([]byte, error) {
 		return nil, err
 	}
 	logger.Log.Debug(readMessage)
+	result := model.Message{
+		MessageType: readMessage.MessageType,
+		AuthorId:    readMessage.AuthorId,
+		RoomId:      readMessage.RoomId,
+		Content:     string(readMessage.Content)[1 : len(readMessage.Content)-1],
+		CreateAt:    readMessage.CreateAt.UTC(),
+	}
+
+	sentData, err := json.Marshal(result)
+	if err != nil {
+		logger.Log.Errorf("message marshalling error : [%v]", err)
+		return nil, err
+	}
 
 	// TODO : send message to Redis cluster
 	conn, err := amqp.Dial(getMqSource())
@@ -162,7 +175,7 @@ func messageProcessing(message []byte) ([]byte, error) {
 		DeliveryMode:  amqp.Persistent,
 		ContentType:   "application/json",
 		CorrelationId: requestId,
-		Body:          message,
+		Body:          sentData,
 	}
 
 	queueName := config.Config().GetString("mq.listeningQueueName")
@@ -170,12 +183,6 @@ func messageProcessing(message []byte) ([]byte, error) {
 	err = channel.Publish("", queueName, false, false, payload)
 	if err != nil {
 		logger.Log.Errorf("publish failed : [%v]", err)
-	}
-
-	sentData, err := json.Marshal(readMessage)
-	if err != nil {
-		logger.Log.Errorf("message marshalling error : [%v]", err)
-		return nil, err
 	}
 
 	return sentData, nil

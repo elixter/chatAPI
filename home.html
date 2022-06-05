@@ -28,11 +28,14 @@
                     return false;
                 }
 
+                now = new Date(Date.now());
+                console.log(now.toISOString());
                 conn.send(JSON.stringify({
                     message_type: "chat_txt",
                     author_id: 11,
                     room_id: 12323,
                     content: msg.value,
+                    create_at: now.toISOString(),
                 }));
                 msg.value = "";
 
