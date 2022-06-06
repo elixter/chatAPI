@@ -4,6 +4,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type Hub struct {
@@ -18,7 +19,12 @@ func NewHub() *Hub {
 
 func (h *Hub) WsHandler(c echo.Context) error {
 
-	roomId := int64(1234)
+	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"error": err,
+		})
+	}
 	if _, ok := h.rooms[roomId]; !ok {
 		h.rooms[roomId] = newRoom(roomId)
 		go h.rooms[roomId].run()

@@ -5,7 +5,7 @@ import (
 )
 
 type Synchronizer interface {
-	Receive() error
+	Listen() error
 	Synchronize([]byte) error
 	SaveToRDB(model.Message) error
 	Close()

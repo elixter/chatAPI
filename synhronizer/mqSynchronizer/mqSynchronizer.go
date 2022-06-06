@@ -35,15 +35,6 @@ func New(repository repository.MessageRepository) MqSynchronizer {
 	}
 }
 
-func getRedisSource() string {
-	redisConfig := config.Config().GetStringMapString("redis")
-	return fmt.Sprintf(
-		"%s:%s",
-		redisConfig["host"],
-		redisConfig["port"],
-	)
-}
-
 func getMqSource() string {
 	mqConfig := config.Config().GetStringMapString("mq")
 	return fmt.Sprintf(
@@ -53,11 +44,6 @@ func getMqSource() string {
 		mqConfig["host"],
 		mqConfig["port"],
 	)
-}
-
-func (rc *MqSynchronizer) Receive() error {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (rc *MqSynchronizer) Listen() error {

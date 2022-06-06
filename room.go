@@ -3,8 +3,9 @@ package main
 import (
 	"chatting/config"
 	"chatting/logger"
+	"context"
 	"fmt"
-	"github.com/streadway/amqp"
+	"github.com/go-redis/redis/v8"
 )
 
 type room struct {
@@ -38,29 +39,20 @@ func getMqSource() string {
 
 func (r *room) run() {
 	go func() {
-		conn, err := amqp.Dial(getMqSource())
-		if err != nil {
-			logger.Log.Panicf("connect with message queue failed : [%v]", err)
-		}
+		rdb := redis.NewClient(&redis.Options{
+			Addr:     "localhost:6379",
+			Password: "", // no password set
+			DB:       0,  // use default DB
+		})
 
-		channel, err := conn.Channel()
-		msgs, err := channel.Consume(
-			config.Config().GetString("mq.listeningQueueName"),
-			"",
-			true,
-			false,
-			false,
-			false,
-			nil,
-		)
-		if err != nil {
-			logger.Log.Errorf("receiving message failed : [%v]", err)
-			return
-		}
+		sub := rdb.Subscribe(context.Background(), "chat")
+		defer sub.Close()
+		msgs := sub.Channel()
+
 		go func() {
 			for msg := range msgs {
 				// TODO: 발신지와 같은 서버인 경우 continue
-				r.broadcast <- msg.Body
+				r.broadcast <- []byte(msg.Payload)
 			}
 		}()
 	}()
