@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chatting/config"
 	"chatting/logger"
 	"chatting/model"
 	"context"
@@ -148,11 +149,12 @@ func messageProcessing(message []byte) ([]byte, error) {
 	}
 	logger.Log.Debug(readMessage)
 	result := model.Message{
-		MessageType: readMessage.MessageType,
-		AuthorId:    readMessage.AuthorId,
-		RoomId:      readMessage.RoomId,
-		Content:     string(readMessage.Content)[1 : len(readMessage.Content)-1],
-		CreateAt:    readMessage.CreateAt.UTC(),
+		MessageType:    readMessage.MessageType,
+		OriginServerId: serverId,
+		AuthorId:       readMessage.AuthorId,
+		RoomId:         readMessage.RoomId,
+		Content:        string(readMessage.Content)[1 : len(readMessage.Content)-1],
+		CreateAt:       readMessage.CreateAt.UTC(),
 	}
 
 	sentData, err := json.Marshal(result)
@@ -167,7 +169,13 @@ func messageProcessing(message []byte) ([]byte, error) {
 		DB:       0,  // use default DB
 	})
 
-	rdb.Publish(context.Background(), "chat", sentData)
+	channelName := config.Config().GetString("redis.publishChannelName")
+
+	err = rdb.Publish(context.Background(), channelName, sentData).Err()
+	if err != nil {
+		logger.Log.Errorf("message publishing failed")
+		return nil, err
+	}
 
 	return sentData, nil
 }

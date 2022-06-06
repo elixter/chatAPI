@@ -46,8 +46,10 @@ func getDatasource() string {
 
 func (m *MySqlMessageRepository) Save(message model.Message) error {
 
-	_, err := m.db.NamedExec(insertMessage, message)
-	return err
+	//_, err := m.db.NamedExec(insertMessage, message)
+	//return err
+
+	return nil
 }
 
 func (m *MySqlMessageRepository) Close() {
