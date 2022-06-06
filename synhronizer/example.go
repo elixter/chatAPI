@@ -1,4 +1,4 @@
-package storageCluster
+package synhronizer
 
 import (
 	"context"

@@ -2,8 +2,8 @@ package main
 
 import (
 	"chatting/logger"
-	"chatting/storageCluster/redisCluster"
-	"chatting/storageCluster/repository/mySqlMeesageRepository"
+	"chatting/synhronizer/redisSynchronizer"
+	"chatting/synhronizer/repository/mySqlMeesageRepository"
 	"github.com/labstack/echo/v4"
 	"log"
 	"net/http"
@@ -28,7 +28,7 @@ func main() {
 	e.Logger = logger.Log
 	hub := NewHub()
 
-	cluster := redisCluster.New(mySqlMeesageRepository.New())
+	cluster := redisSynchronizer.New(mySqlMeesageRepository.New())
 	defer cluster.Close()
 	go func() {
 		err := cluster.Listen()
@@ -44,6 +44,6 @@ func main() {
 		return nil
 	})
 
-	e.GET("/ws", hub.WsHandler)
-	e.Logger.Fatal(e.Start(":8080"))
+	e.GET("/ws/:roomId", hub.WsHandler)
+	e.Logger.Fatal(e.Start(":8081"))
 }

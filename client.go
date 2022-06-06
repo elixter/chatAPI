@@ -1,14 +1,13 @@
 package main
 
 import (
-	"chatting/config"
 	"chatting/logger"
 	"chatting/model"
+	"context"
 	"encoding/json"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/gommon/bytes"
-	"github.com/labstack/gommon/random"
-	"github.com/streadway/amqp"
 	"net/http"
 	"time"
 )
@@ -162,28 +161,13 @@ func messageProcessing(message []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// TODO : send message to Redis cluster
-	conn, err := amqp.Dial(getMqSource())
-	if err != nil {
-		logger.Log.Panicf("connect with message queue failed : [%v]", err)
-	}
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
 
-	channel, err := conn.Channel()
-
-	requestId := random.String(32)
-	payload := amqp.Publishing{
-		DeliveryMode:  amqp.Persistent,
-		ContentType:   "application/json",
-		CorrelationId: requestId,
-		Body:          sentData,
-	}
-
-	queueName := config.Config().GetString("mq.listeningQueueName")
-
-	err = channel.Publish("", queueName, false, false, payload)
-	if err != nil {
-		logger.Log.Errorf("publish failed : [%v]", err)
-	}
+	rdb.Publish(context.Background(), "chat", sentData)
 
 	return sentData, nil
 }
