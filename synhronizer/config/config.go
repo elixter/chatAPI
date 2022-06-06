@@ -1,10 +1,12 @@
 package config
 
 import (
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 )
 
 var instance *viper.Viper
+var ServerId uuid.UUID
 
 func init() {
 

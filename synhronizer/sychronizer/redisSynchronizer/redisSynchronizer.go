@@ -4,7 +4,7 @@ import (
 	"chatting/config"
 	"chatting/logger"
 	"chatting/model"
-	"chatting/synhronizer/repository"
+	"chatting/repository"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -46,7 +46,9 @@ func getRedisSource() string {
 }
 
 func (r *RedisSynchronizer) Listen() error {
-	channelName := config.Config().GetString("redis.listeningChannelName")
+	logger.Log.Info("synchronizer starts listening")
+
+	channelName := config.Config().GetString("redis.publishChannelName")
 
 	sub := r.redis.Subscribe(r.ctx, channelName)
 
@@ -55,7 +57,18 @@ func (r *RedisSynchronizer) Listen() error {
 	go func() {
 		defer sub.Close()
 		for msg := range msgs {
+			logger.Log.Infof("received message")
 			payload := []byte(msg.Payload)
+
+			var received model.Message
+			err := json.Unmarshal([]byte(msg.Payload), &received)
+			if err != nil {
+				logger.Log.Errorf("received message unmarshal error: [%v]", err)
+			}
+			if received.SyncServerId == config.ServerId {
+				logger.Log.Infof("same sync server id")
+				continue
+			}
 
 			go func(message []byte) {
 				err := r.Synchronize(message)
@@ -65,7 +78,7 @@ func (r *RedisSynchronizer) Listen() error {
 			}(payload)
 
 			var body model.Message
-			err := json.Unmarshal(payload, &body)
+			err = json.Unmarshal(payload, &body)
 			if err != nil {
 				logger.Log.Errorf("binding message body failed : [%v]", err)
 			}
@@ -85,6 +98,18 @@ func (r *RedisSynchronizer) Listen() error {
 
 func (r *RedisSynchronizer) Synchronize(message []byte) error {
 	channelName := config.Config().GetString("redis.listeningChannelName")
+
+	var msg model.Message
+	err := json.Unmarshal(message, &msg)
+	if err != nil {
+		return err
+	}
+	msg.SyncServerId = config.ServerId
+	marshal, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	message = marshal
 
 	return r.redis.Publish(r.ctx, channelName, message).Err()
 }

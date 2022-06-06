@@ -1,4 +1,4 @@
-package synhronizer
+package main
 
 import (
 	"context"

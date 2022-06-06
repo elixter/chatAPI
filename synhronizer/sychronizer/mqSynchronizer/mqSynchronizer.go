@@ -4,9 +4,10 @@ import (
 	"chatting/config"
 	"chatting/logger"
 	"chatting/model"
-	"chatting/synhronizer/repository"
+	"chatting/repository"
 	"encoding/json"
 	"fmt"
+	"github.com/labstack/gommon/log"
 	"github.com/labstack/gommon/random"
 	"github.com/streadway/amqp"
 )
@@ -20,7 +21,7 @@ type MqSynchronizer struct {
 func New(repository repository.MessageRepository) MqSynchronizer {
 	conn, err := amqp.Dial(getMqSource())
 	if err != nil {
-		logger.Log.Panicf("connect with message queue failed : [%v]", err)
+		log.Panicf("connect with message queue failed : [%v]", err)
 	}
 
 	ch, err := conn.Channel()

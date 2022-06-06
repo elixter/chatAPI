@@ -2,7 +2,7 @@ package mqSynchronizer
 
 import (
 	"chatting/model"
-	"chatting/synhronizer/repository/mySqlMeesageRepository"
+	"chatting/repository/mySqlMeesageRepository"
 	"testing"
 	"time"
 )

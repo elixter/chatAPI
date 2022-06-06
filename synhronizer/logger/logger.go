@@ -2,11 +2,10 @@ package logger
 
 import (
 	"chatting/config"
-	"github.com/labstack/echo/v4"
 	log2 "github.com/labstack/gommon/log"
 )
 
-var Log echo.Logger
+var Log *log2.Logger
 
 const (
 	logLevelDebug = "debug"
@@ -16,7 +15,7 @@ const (
 )
 
 func init() {
-	Log = log2.New("echo")
+	Log = log2.New("synchronizer")
 	logConfig := config.Config().GetStringMapString("logger")
 	switch logConfig["level"] {
 	case logLevelDebug:

@@ -1,8 +1,6 @@
-package synhronizer
+package sychronizer
 
-import (
-	"chatting/model"
-)
+import "chatting/model"
 
 type Synchronizer interface {
 	Listen() error
