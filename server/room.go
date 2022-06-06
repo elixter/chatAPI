@@ -47,7 +47,8 @@ func (r *room) run() {
 			DB:       0,  // use default DB
 		})
 
-		sub := rdb.Subscribe(context.Background(), "chat")
+		channelName := config.Config().GetString("redis.listeningChannelName")
+		sub := rdb.Subscribe(context.Background(), channelName)
 		msgs := sub.Channel()
 
 		go func() {
@@ -60,8 +61,8 @@ func (r *room) run() {
 					logger.Log.Error(err)
 				}
 
-				if received.ServerUUID.String() == serverId.String() {
-					logger.Log.Infof("message is same origin : [%s]", received.ServerUUID.String())
+				if received.OriginServerId.String() == serverId.String() {
+					logger.Log.Infof("message is same origin : [%s]", received.OriginServerId.String())
 					continue
 				}
 
