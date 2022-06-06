@@ -13,7 +13,6 @@ Gorilla Websocket을 발전시켜서 API로 만들어 봅시다.
       "host": "",
       "port": "",
       "database": "",
-      "listeningChannelName": ""
     },
     "mq": {
       "host": "",
@@ -27,7 +26,9 @@ Gorilla Websocket을 발전시켜서 API로 만들어 봅시다.
       "password": "",
       "host": "",
       "port": "",
-      "database": ""
+      "database": "",
+      "listeningChannelName": "",
+      "publishChannelName": ""
     },
     "logger": {
       "level": ""
