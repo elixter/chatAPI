@@ -3,7 +3,9 @@ package main
 import (
 	"chatting/config"
 	"chatting/logger"
+	"chatting/model"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis/v8"
 )
@@ -46,12 +48,23 @@ func (r *room) run() {
 		})
 
 		sub := rdb.Subscribe(context.Background(), "chat")
-		defer sub.Close()
 		msgs := sub.Channel()
 
 		go func() {
+			defer sub.Close()
 			for msg := range msgs {
 				// TODO: 발신지와 같은 서버인 경우 continue
+				var received model.Message
+				err := json.Unmarshal([]byte(msg.Payload), &received)
+				if err != nil {
+					logger.Log.Error(err)
+				}
+
+				if received.ServerUUID.String() == serverId.String() {
+					logger.Log.Infof("message is same origin : [%s]", received.ServerUUID.String())
+					continue
+				}
+
 				r.broadcast <- []byte(msg.Payload)
 			}
 		}()

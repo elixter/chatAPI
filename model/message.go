@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"github.com/google/uuid"
 	"time"
 )
 
@@ -14,6 +15,7 @@ const (
 
 type Message struct {
 	Id          int64       `json:"id" db:"id"`
+	ServerUUID  uuid.UUID   `json:"server_uuid"`
 	MessageType MessageType `json:"message_type" db:"message_type"`
 	AuthorId    int64       `json:"author_id" db:"author_id"`
 	RoomId      int64       `json:"room_id" db:"room_id"`

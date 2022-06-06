@@ -2,8 +2,8 @@ package main
 
 import (
 	"chatting/logger"
-	"chatting/synhronizer/redisSynchronizer"
-	"chatting/synhronizer/repository/mySqlMeesageRepository"
+	"context"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"log"
 	"net/http"
@@ -22,20 +22,16 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "home.html")
 }
 
-func main() {
+var Ctx context.Context
+var serverId uuid.UUID
 
+func main() {
 	e := echo.New()
 	e.Logger = logger.Log
 	hub := NewHub()
+	serverId = uuid.New()
 
-	cluster := redisSynchronizer.New(mySqlMeesageRepository.New())
-	defer cluster.Close()
-	go func() {
-		err := cluster.Listen()
-		if err != nil {
-			logger.Log.Panicf("cluster listening failed : [%v]", err)
-		}
-	}()
+	e.Logger.Info(serverId.String())
 
 	e.GET("/", func(c echo.Context) error {
 		logger.Log.Info("test")
@@ -45,5 +41,5 @@ func main() {
 	})
 
 	e.GET("/ws/:roomId", hub.WsHandler)
-	e.Logger.Fatal(e.Start(":8081"))
+	e.Logger.Fatal(e.Start(":8080"))
 }

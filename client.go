@@ -149,6 +149,7 @@ func messageProcessing(message []byte) ([]byte, error) {
 	logger.Log.Debug(readMessage)
 	result := model.Message{
 		MessageType: readMessage.MessageType,
+		ServerUUID:  serverId,
 		AuthorId:    readMessage.AuthorId,
 		RoomId:      readMessage.RoomId,
 		Content:     string(readMessage.Content)[1 : len(readMessage.Content)-1],
@@ -167,7 +168,11 @@ func messageProcessing(message []byte) ([]byte, error) {
 		DB:       0,  // use default DB
 	})
 
-	rdb.Publish(context.Background(), "chat", sentData)
+	err = rdb.Publish(context.Background(), "chat", sentData).Err()
+	if err != nil {
+		logger.Log.Errorf("message publishing failed")
+		return nil, err
+	}
 
 	return sentData, nil
 }

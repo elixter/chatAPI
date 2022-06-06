@@ -49,11 +49,11 @@ func (r *RedisSynchronizer) Listen() error {
 	channelName := config.Config().GetString("redis.listeningChannelName")
 
 	sub := r.redis.Subscribe(r.ctx, channelName)
-	defer sub.Close()
 
 	msgs := sub.Channel()
 
 	go func() {
+		defer sub.Close()
 		for msg := range msgs {
 			payload := []byte(msg.Payload)
 
@@ -76,8 +76,8 @@ func (r *RedisSynchronizer) Listen() error {
 					logger.Log.Errorf("saving message to RDB failed : [%v]", err)
 				}
 			}(body)
-
 		}
+		logger.Log.Info("goroutine in listening is ended")
 	}()
 
 	return nil
