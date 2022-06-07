@@ -3,6 +3,7 @@ package main
 import (
 	"chatting/logger"
 	"context"
+	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"log"
@@ -24,6 +25,7 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 
 var Ctx context.Context
 var serverId uuid.UUID
+var rdb *redis.Client
 
 func main() {
 	e := echo.New()
@@ -32,6 +34,13 @@ func main() {
 	serverId = uuid.New()
 
 	e.Logger.Info(serverId.String())
+
+	rdb = redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+	defer rdb.Close()
 
 	e.GET("/", func(c echo.Context) error {
 		logger.Log.Info("test")

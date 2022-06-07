@@ -6,7 +6,6 @@ import (
 	"chatting/model"
 	"context"
 	"encoding/json"
-	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/gommon/bytes"
 	"net/http"
@@ -163,14 +162,7 @@ func messageProcessing(message []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
-
 	channelName := config.Config().GetString("redis.publishChannelName")
-
 	err = rdb.Publish(context.Background(), channelName, sentData).Err()
 	if err != nil {
 		logger.Log.Errorf("message publishing failed")

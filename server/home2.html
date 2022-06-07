@@ -33,7 +33,7 @@
                 conn.send(JSON.stringify({
                     message_type: "chat_txt",
                     author_id: 11,
-                    room_id: 12323,
+                    room_id: 123,
                     content: msg.value,
                     create_at: now.toISOString(),
                 }));
@@ -43,7 +43,7 @@
             };
 
             if (window["WebSocket"]) {
-                conn = new WebSocket("ws://" + "localhost:8081" + "/ws/1234");
+                conn = new WebSocket("ws://" + "localhost:8081" + "/ws/123");
                 conn.onclose = function (evt) {
                     var item = document.createElement("div");
                     item.innerHTML = "<b>Connection closed.</b>";

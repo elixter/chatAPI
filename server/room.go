@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/go-redis/redis/v8"
 )
 
 type room struct {
@@ -41,12 +40,6 @@ func getMqSource() string {
 
 func (r *room) run() {
 	go func() {
-		rdb := redis.NewClient(&redis.Options{
-			Addr:     "localhost:6379",
-			Password: "", // no password set
-			DB:       0,  // use default DB
-		})
-
 		channelName := config.Config().GetString("redis.listeningChannelName")
 		sub := rdb.Subscribe(context.Background(), channelName)
 		msgs := sub.Channel()
@@ -61,7 +54,7 @@ func (r *room) run() {
 					logger.Log.Error(err)
 				}
 
-				if received.OriginServerId.String() == serverId.String() {
+				if received.OriginServerId == serverId && received.SyncServerId.String() != "" {
 					logger.Log.Infof("message is same origin : [%s]", received.OriginServerId.String())
 					continue
 				}
@@ -76,17 +69,20 @@ func (r *room) run() {
 		case client := <-r.register:
 			r.clients[client] = true
 		case client := <-r.unregister:
-			delete(r.clients, client)
 			close(client.send)
+			delete(r.clients, client)
 		case message := <-r.broadcast:
 			for client := range r.clients {
 				select {
 				case client.send <- message:
 				default:
 					// if client channel has issue, disconnect client
-					logger.Log.Debug("client [%d] channel has problem", client.id)
+					logger.Log.Debugf("client [%d] channel has problem", client.id)
 					delete(r.clients, client)
-					close(client.send)
+					_, ok := <-client.send
+					if !ok {
+						close(client.send)
+					}
 				}
 			}
 		}
