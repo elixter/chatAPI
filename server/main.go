@@ -1,11 +1,13 @@
 package main
 
 import (
+	"chatting/config"
 	"chatting/logger"
+	pubsub2 "chatting/pubsub"
 	"context"
-	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	log2 "github.com/labstack/gommon/log"
 	"log"
 	"net/http"
 )
@@ -23,24 +25,47 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "home.html")
 }
 
+const (
+	logLevelDebug = "debug"
+	logLevelInfo  = "info"
+	logLevelWarn  = "warn"
+	logLevelError = "error"
+)
+
 var Ctx context.Context
 var serverId uuid.UUID
-var rdb *redis.Client
+var pubsub pubsub2.PubSub
+
+var e *echo.Echo
+
+func init() {
+	e = echo.New()
+
+	logConfig := config.Config().GetStringMapString("logger")
+	switch logConfig["level"] {
+	case logLevelDebug:
+		e.Logger.SetLevel(log2.DEBUG)
+		break
+	case logLevelInfo:
+		e.Logger.SetLevel(log2.INFO)
+		break
+	case logLevelWarn:
+		e.Logger.SetLevel(log2.WARN)
+		break
+	case logLevelError:
+		e.Logger.SetLevel(log2.ERROR)
+		break
+	}
+
+	logger.SetLogger(e.Logger)
+}
 
 func main() {
-	e := echo.New()
-	e.Logger = logger.Log
 	hub := NewHub()
 	serverId = uuid.New()
+	e.Logger.Infof("server id : [%s]", serverId.String())
 
-	e.Logger.Info(serverId.String())
-
-	rdb = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
-	defer rdb.Close()
+	pubsub = pubsub2.New()
 
 	e.GET("/", func(c echo.Context) error {
 		logger.Log.Info("test")

@@ -1,10 +1,8 @@
 package main
 
 import (
-	"chatting/config"
 	"chatting/logger"
 	"chatting/model"
-	"context"
 	"encoding/json"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/gommon/bytes"
@@ -164,11 +162,8 @@ func messageProcessing(broadcast chan []byte, message []byte) error {
 		logger.Log.Errorf("message marshalling error : [%v]", err)
 		return err
 	}
-
 	broadcast <- sentData
-
-	channelName := config.Config().GetString("redis.publishChannelName")
-	err = rdb.Publish(context.Background(), channelName, sentData).Err()
+	err = pubsub.Publish(sentData)
 	if err != nil {
 		logger.Log.Errorf("message publishing failed")
 		return err

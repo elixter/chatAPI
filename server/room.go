@@ -1,12 +1,11 @@
 package main
 
 import (
-	"chatting/config"
 	"chatting/logger"
 	"chatting/model"
-	"context"
+	pubsub2 "chatting/pubsub"
 	"encoding/json"
-	"fmt"
+	"github.com/pkg/errors"
 )
 
 type room struct {
@@ -27,51 +26,9 @@ func newRoom(id int64) *room {
 	}
 }
 
-func getMqSource() string {
-	mqConfig := config.Config().GetStringMapString("mq")
-	return fmt.Sprintf(
-		"amqp://%s:%s@%s:%s/",
-		mqConfig["id"],
-		mqConfig["password"],
-		mqConfig["host"],
-		mqConfig["port"],
-	)
-}
-
 func (r *room) run() {
 	go func() {
-		channelName := config.Config().GetString("redis.listeningChannelName")
-		sub := rdb.Subscribe(context.Background(), channelName)
-		msgs := sub.Channel()
-
-		go func() {
-			defer sub.Close()
-			for msg := range msgs {
-				valid, err := r.filterBroadcast([]byte(msg.Payload))
-				if err != nil {
-					logger.Log.Errorf("failed to valid message : [%v]", err)
-					continue
-				}
-
-				if !valid {
-					continue
-				}
-
-				for client := range r.clients {
-					select {
-					case client.send <- []byte(msg.Payload):
-					default:
-						// if client channel has issue, disconnect client
-						logger.Log.Debugf("client [%d] channel has problem", client.id)
-						delete(r.clients, client)
-						_, ok := <-client.send
-						if !ok {
-							close(client.send)
-						}
-					}
-				}
-			}
-		}()
+		go pubsub.Subscribe(r.messageListening)
 	}()
 
 	for {
@@ -97,6 +54,33 @@ func (r *room) run() {
 			}
 		}
 	}
+}
+
+func (r *room) messageListening(msg []byte) error {
+	valid, err := r.filterBroadcast(msg)
+	if err != nil {
+		return errors.Errorf("failed to valid message : [%v]", err)
+	}
+
+	if !valid {
+		return pubsub2.ErrMessageNoNeedToBroadcast
+	}
+
+	for client := range r.clients {
+		select {
+		case client.send <- msg:
+		default:
+			// if client channel has issue, disconnect client
+			logger.Log.Debugf("client [%d] channel has problem", client.id)
+			delete(r.clients, client)
+			_, ok := <-client.send
+			if !ok {
+				close(client.send)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (r *room) filterBroadcast(message []byte) (bool, error) {
