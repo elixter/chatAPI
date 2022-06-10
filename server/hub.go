@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/labstack/echo/v4"
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
 )
@@ -42,7 +43,7 @@ func serveWs(room *room, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := &Client{room: room, conn: conn, send: make(chan []byte, 256)}
+	client := &Client{id: rand.Int63(), room: room, conn: conn, send: make(chan []byte, 256)}
 	client.room.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
