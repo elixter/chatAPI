@@ -74,7 +74,6 @@ func (c *Client) readPump() {
 
 	for {
 		_, message, err := c.conn.ReadMessage()
-		logger.Log.Info("reading")
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				logger.Log.Errorf("error: %v", err)
@@ -82,13 +81,14 @@ func (c *Client) readPump() {
 			break
 		}
 
-		broadcastMsg, err := messageProcessing(message)
+		err = messageProcessing(c.room.broadcast, message)
 		if err != nil {
 			logger.Log.Errorf("message processing error : [%v]", err)
 			continue
 		}
 
-		c.room.broadcast <- broadcastMsg
+		//c.room.broadcast <- broadcastMsg
+
 	}
 }
 
@@ -118,6 +118,7 @@ func (c *Client) writePump() {
 				return
 			}
 
+			logger.Log.Debug("writing")
 			w.Write(message)
 
 			// Add queued chat messages to the current websocket message.
@@ -139,12 +140,14 @@ func (c *Client) writePump() {
 	}
 }
 
-func messageProcessing(message []byte) ([]byte, error) {
+func messageProcessing(broadcast chan []byte, message []byte) error {
+	start := time.Now()
+
 	readMessage := model.ClientMessage{}
 	err := json.Unmarshal(message, &readMessage)
 	if err != nil {
 		logger.Log.Errorf("message unmarshalling error : [%v]", err)
-		return nil, err
+		return err
 	}
 	logger.Log.Debug(readMessage)
 	result := model.Message{
@@ -159,15 +162,19 @@ func messageProcessing(message []byte) ([]byte, error) {
 	sentData, err := json.Marshal(result)
 	if err != nil {
 		logger.Log.Errorf("message marshalling error : [%v]", err)
-		return nil, err
+		return err
 	}
+
+	broadcast <- sentData
 
 	channelName := config.Config().GetString("redis.publishChannelName")
 	err = rdb.Publish(context.Background(), channelName, sentData).Err()
 	if err != nil {
 		logger.Log.Errorf("message publishing failed")
-		return nil, err
+		return err
 	}
 
-	return sentData, nil
+	logger.Log.Debug(time.Now().Sub(start))
+
+	return nil
 }

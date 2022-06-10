@@ -47,7 +47,6 @@ func (r *room) run() {
 		go func() {
 			defer sub.Close()
 			for msg := range msgs {
-				// TODO: 발신지와 같은 서버인 경우 continue
 				var received model.Message
 				err := json.Unmarshal([]byte(msg.Payload), &received)
 				if err != nil {
@@ -55,11 +54,29 @@ func (r *room) run() {
 				}
 
 				if received.OriginServerId == serverId && received.SyncServerId.String() != "" {
-					logger.Log.Infof("message is same origin : [%s]", received.OriginServerId.String())
+					logger.Log.Debugf("message is same origin : [%s]", received.OriginServerId.String())
 					continue
 				}
 
-				r.broadcast <- []byte(msg.Payload)
+				if received.RoomId != r.id {
+					continue
+				}
+
+				//r.broadcast <- []byte(msg.Payload)
+
+				for client := range r.clients {
+					select {
+					case client.send <- []byte(msg.Payload):
+					default:
+						// if client channel has issue, disconnect client
+						logger.Log.Debugf("client [%d] channel has problem", client.id)
+						delete(r.clients, client)
+						_, ok := <-client.send
+						if !ok {
+							close(client.send)
+						}
+					}
+				}
 			}
 		}()
 	}()
