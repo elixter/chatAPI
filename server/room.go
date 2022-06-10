@@ -27,9 +27,8 @@ func newRoom(id int64) *room {
 }
 
 func (r *room) run() {
-	go func() {
-		go pubsub.Subscribe(r.messageListening)
-	}()
+
+	go pubsub.Subscribe(r.messageListening)
 
 	for {
 		select {
