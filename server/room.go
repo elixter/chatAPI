@@ -47,22 +47,15 @@ func (r *room) run() {
 		go func() {
 			defer sub.Close()
 			for msg := range msgs {
-				var received model.Message
-				err := json.Unmarshal([]byte(msg.Payload), &received)
+				valid, err := r.filterBroadcast([]byte(msg.Payload))
 				if err != nil {
-					logger.Log.Error(err)
-				}
-
-				if received.OriginServerId == serverId && received.SyncServerId.String() != "" {
-					logger.Log.Debugf("message is same origin : [%s]", received.OriginServerId.String())
+					logger.Log.Errorf("failed to valid message : [%v]", err)
 					continue
 				}
 
-				if received.RoomId != r.id {
+				if !valid {
 					continue
 				}
-
-				//r.broadcast <- []byte(msg.Payload)
 
 				for client := range r.clients {
 					select {
@@ -104,4 +97,23 @@ func (r *room) run() {
 			}
 		}
 	}
+}
+
+func (r *room) filterBroadcast(message []byte) (bool, error) {
+	var received model.Message
+	err := json.Unmarshal(message, &received)
+	if err != nil {
+		return false, err
+	}
+
+	if received.OriginServerId == serverId && received.SyncServerId.String() != "" {
+		logger.Log.Debugf("message is same origin : [%s]", received.OriginServerId.String())
+		return false, nil
+	}
+
+	if received.RoomId != r.id {
+		return false, nil
+	}
+
+	return true, nil
 }
