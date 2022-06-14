@@ -54,7 +54,7 @@ func (r *RedisPubSub) Subscribe(handler SubscribeHandler) {
 			err := handler([]byte(msg.Payload))
 			if err != nil {
 				if err != ErrMessageNoNeedToBroadcast {
-					logger.Log.Error(err)
+					logger.Error(err)
 				}
 				continue
 			}
