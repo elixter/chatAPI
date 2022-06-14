@@ -27,9 +27,7 @@ func newRoom(id int64) *room {
 }
 
 func (r *room) run() {
-	go func() {
-		go pubsub.Subscribe(r.messageListening)
-	}()
+	go pubsub.Subscribe(r.messageListening)
 
 	for {
 		select {
@@ -44,7 +42,7 @@ func (r *room) run() {
 				case client.send <- message:
 				default:
 					// if client channel has issue, disconnect client
-					logger.Log.Debugf("client [%d] channel has problem", client.id)
+					logger.Debugf("client [%d] channel has problem", client.id)
 					delete(r.clients, client)
 					_, ok := <-client.send
 					if !ok {
@@ -71,7 +69,7 @@ func (r *room) messageListening(msg []byte) error {
 		case client.send <- msg:
 		default:
 			// if client channel has issue, disconnect client
-			logger.Log.Debugf("client [%d] channel has problem", client.id)
+			logger.Debugf("client [%d] channel has problem", client.id)
 			delete(r.clients, client)
 			_, ok := <-client.send
 			if !ok {
@@ -91,7 +89,7 @@ func (r *room) filterBroadcast(message []byte) (bool, error) {
 	}
 
 	if received.OriginServerId == serverId && received.SyncServerId.String() != "" {
-		logger.Log.Debugf("message is same origin : [%s]", received.OriginServerId.String())
+		logger.Debugf("message is same origin : [%s]", received.OriginServerId.String())
 		return false, nil
 	}
 

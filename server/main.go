@@ -68,8 +68,6 @@ func main() {
 	pubsub = pubsub2.New()
 
 	e.GET("/", func(c echo.Context) error {
-		logger.Log.Info("test")
-		logger.Log.Debug("tetggggggg")
 		serveHome(c.Response().Writer, c.Request())
 		return nil
 	})
