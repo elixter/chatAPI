@@ -1,11 +1,14 @@
 package redisSynchronizer
 
 import (
+	"chatting/config"
 	"chatting/model"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
@@ -59,4 +62,81 @@ func Test(t *testing.T) {
 			break
 		}
 	})
+}
+
+type testRepository struct{}
+
+func newTestRepository() testRepository {
+	return testRepository{}
+}
+
+func (testRepository) Save(message model.Message) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (testRepository) Close() {
+	//TODO implement me
+	panic("implement me")
+}
+
+func TestRedisSynchronizer(t *testing.T) {
+	tests := []struct {
+		name    string
+		message model.Message
+	}{
+		{
+			name: "redis synchronizer test",
+			message: model.Message{
+				Id:             1,
+				OriginServerId: uuid.New(),
+				SyncServerId:   config.ServerId,
+				MessageType:    model.TypeChatText,
+				AuthorId:       1,
+				RoomId:         1,
+				Content:        "test",
+				CreateAt:       time.Now().UTC(),
+			},
+		},
+	}
+	for _, tt := range tests {
+		synchronizer := New(newTestRepository())
+		var ch chan model.Message
+
+		t.Run(tt.name, func(t *testing.T) {
+			ch = make(chan model.Message)
+
+			synchronizer.Listen(func(bytes []byte) error {
+				var msg model.Message
+				err := json.Unmarshal(bytes, &msg)
+				if err != nil {
+					return err
+				}
+
+				ch <- msg
+				close(ch)
+
+				return nil
+			})
+
+			msg, err := json.Marshal(tt.message)
+			if err != nil {
+				t.Error(err)
+			}
+			synchronizer.Synchronize(msg)
+
+			for {
+				select {
+				case msg, ok := <-ch:
+					if !ok {
+						return
+					}
+
+					if !assert.Equal(t, tt.message, msg) {
+						t.FailNow()
+					}
+				}
+			}
+		})
+	}
 }
