@@ -77,18 +77,18 @@ func (r *RedisSynchronizer) Listen() error {
 				}
 			}(payload)
 
-			var body model.Message
-			err = json.Unmarshal(payload, &body)
-			if err != nil {
-				logger.Log.Errorf("binding message body failed : [%v]", err)
-			}
+			go func() {
+				var message model.Message
+				err = json.Unmarshal(payload, &message)
+				if err != nil {
+					logger.Log.Errorf("binding message body failed : [%v]", err)
+				}
 
-			go func(message model.Message) {
 				err := r.SaveToRDB(message)
 				if err != nil {
 					logger.Log.Errorf("saving message to RDB failed : [%v]", err)
 				}
-			}(body)
+			}()
 		}
 		logger.Log.Info("goroutine in listening is ended")
 	}()
