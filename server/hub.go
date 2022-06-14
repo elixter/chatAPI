@@ -19,7 +19,6 @@ func NewHub() *Hub {
 }
 
 func (h *Hub) WsHandler(c echo.Context) error {
-
 	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{

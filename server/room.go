@@ -27,7 +27,6 @@ func newRoom(id int64) *room {
 }
 
 func (r *room) run() {
-
 	go pubsub.Subscribe(r.messageListening)
 
 	for {
