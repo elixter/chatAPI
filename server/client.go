@@ -79,7 +79,7 @@ func (c *Client) readPump() {
 			break
 		}
 
-		err = messageProcessing(c.room.broadcast, message)
+		err = c.messageProcessing(message)
 		if err != nil {
 			logger.Errorf("message processing error : [%v]", err)
 			continue
@@ -138,7 +138,7 @@ func (c *Client) writePump() {
 	}
 }
 
-func messageProcessing(broadcast chan []byte, message []byte) error {
+func (c *Client) messageProcessing(message []byte) error {
 	start := time.Now()
 
 	readMessage := model.ClientMessage{}
@@ -162,7 +162,8 @@ func messageProcessing(broadcast chan []byte, message []byte) error {
 		logger.Errorf("message marshalling error : [%v]", err)
 		return err
 	}
-	broadcast <- sentData
+
+	c.room.broadcast <- sentData
 	err = pubsub.Publish(sentData)
 	if err != nil {
 		logger.Errorf("message publishing failed")

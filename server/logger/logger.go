@@ -1,12 +1,19 @@
 package logger
 
-import (
-	"github.com/labstack/echo/v4"
-)
+var log Logger
 
-var log echo.Logger
+type Logger interface {
+	Debug(i ...interface{})
+	Debugf(format string, args ...interface{})
+	Error(i ...interface{})
+	Errorf(format string, args ...interface{})
+	Info(i ...interface{})
+	Infof(format string, args ...interface{})
+	Print(i ...interface{})
+	Printf(format string, args ...interface{})
+}
 
-func SetLogger(logger echo.Logger) {
+func SetLogger(logger Logger) {
 	log = logger
 }
 
