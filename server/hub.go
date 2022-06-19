@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chatting/logger"
 	"github.com/labstack/echo/v4"
 	"log"
 	"math/rand"
@@ -34,6 +35,7 @@ func (h *Hub) WsHandler(c echo.Context) error {
 		h.rooms[roomId] = newRoom(roomId)
 		go func() {
 			h.rooms[roomId].run()
+			logger.Infof("destruct room [%d]", roomId)
 			delete(h.rooms, roomId)
 		}()
 	}

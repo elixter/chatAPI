@@ -33,6 +33,7 @@ func main() {
 	e.Logger.Infof("server id : [%s]", serverId.String())
 
 	pubsub = pubsub2.New()
+	defer pubsub.Close()
 
 	e.GET("/", func(c echo.Context) error {
 		serveHome(c.Response().Writer, c.Request())
