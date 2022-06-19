@@ -13,7 +13,7 @@ func main() {
 	synchronizer := redisSynchronizer.New(mySqlMeesageRepository.New())
 
 	forever := make(chan bool)
-	synchronizer.Listen()
+	synchronizer.Listen(synchronizer.ListeningHandler)
 
 	<-forever
 }

@@ -53,7 +53,6 @@ func (r *RedisSynchronizer) Listen(handler sychronizer.ListeningHandler) error {
 	channelName := config.Config().GetString("redis.publishChannelName")
 
 	sub := r.redis.Subscribe(r.ctx, channelName)
-
 	msgs := sub.Channel()
 
 	go func() {
@@ -99,7 +98,7 @@ func (r *RedisSynchronizer) Close() {
 	r.repository.Close()
 }
 
-func (r *RedisSynchronizer) listeningHandler(payload []byte) error {
+func (r *RedisSynchronizer) ListeningHandler(payload []byte) error {
 	message, err := binding(payload)
 	if err != nil {
 		return err
