@@ -26,6 +26,7 @@
 - [ ] 커넥션 끊어졌을 경우 자동 재연결
    + [ ] 웹 소켓
    + [ ] Redis 
+- [ ] JSON 인코딩 
 
 ## 실행
 - 프로젝트 Root directory에 다음과 같이 `config.json` 파일 생성
