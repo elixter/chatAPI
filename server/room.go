@@ -27,7 +27,7 @@ func newRoom(id int64) *room {
 }
 
 func (r *room) run() {
-	destruct := make(chan bool)
+	destruct := make(chan struct{})
 	go pubsub.Subscribe(r.messageListening, destruct)
 
 	for {
@@ -41,7 +41,7 @@ func (r *room) run() {
 			delete(r.clients, client)
 
 			if len(r.clients) == 0 {
-				destruct <- true
+				destruct <- struct{}{}
 				close(destruct)
 				logger.Info("Room socket destructed")
 				return
@@ -75,17 +75,7 @@ func (r *room) messageListening(msg []byte) error {
 	}
 
 	for client := range r.clients {
-		select {
-		case client.send <- msg:
-		default:
-			// if client channel has issue, disconnect client
-			logger.Debugf("client [%d] channel has problem", client.id)
-			delete(r.clients, client)
-			_, ok := <-client.send
-			if !ok {
-				close(client.send)
-			}
-		}
+		client.send <- msg
 	}
 
 	return nil

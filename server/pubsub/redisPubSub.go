@@ -74,3 +74,7 @@ func (r *RedisPubSub) Subscribe(handler SubscribeHandler, destruct chan struct{}
 		}
 	}()
 }
+
+func (r *RedisPubSub) Close() {
+	r.client.Close()
+}

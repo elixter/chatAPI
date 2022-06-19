@@ -11,4 +11,5 @@ var (
 type PubSub interface {
 	Publish([]byte) error
 	Subscribe(handler SubscribeHandler, destruct chan struct{})
+	Close()
 }
