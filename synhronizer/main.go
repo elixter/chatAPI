@@ -2,7 +2,7 @@ package main
 
 import (
 	"chatting/config"
-	"chatting/repository/mySqlMeesageRepository"
+	"chatting/repository/testMessageRepository"
 	"chatting/sychronizer/redisSynchronizer"
 	"github.com/google/uuid"
 )
@@ -10,7 +10,7 @@ import (
 func main() {
 	config.ServerId = uuid.New()
 
-	synchronizer := redisSynchronizer.New(mySqlMeesageRepository.New())
+	synchronizer := redisSynchronizer.New(testMessageRepository.New())
 
 	forever := make(chan bool)
 	synchronizer.Listen(synchronizer.ListeningHandler)
