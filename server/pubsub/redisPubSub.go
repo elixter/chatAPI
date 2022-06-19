@@ -52,7 +52,7 @@ func (r *RedisPubSub) Publish(bytes []byte) error {
 	return r.client.Publish(r.ctx, cfg[publishConfigKey], bytes).Err()
 }
 
-func (r *RedisPubSub) Subscribe(handler SubscribeHandler, destruct chan bool) {
+func (r *RedisPubSub) Subscribe(handler SubscribeHandler, destruct chan struct{}) {
 	sub := r.client.Subscribe(r.ctx, cfg[listeningConfigKey])
 	msgs := sub.Channel()
 
