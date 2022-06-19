@@ -10,5 +10,5 @@ var (
 
 type PubSub interface {
 	Publish([]byte) error
-	Subscribe(handler SubscribeHandler)
+	Subscribe(handler SubscribeHandler, destruct chan bool)
 }

@@ -6,14 +6,17 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"sync"
 )
 
 type Hub struct {
+	mutex *sync.RWMutex
 	rooms map[int64]*room
 }
 
 func NewHub() *Hub {
 	return &Hub{
+		mutex: &sync.RWMutex{},
 		rooms: make(map[int64]*room),
 	}
 }
@@ -25,10 +28,16 @@ func (h *Hub) WsHandler(c echo.Context) error {
 			"error": err,
 		})
 	}
+
+	h.mutex.Lock()
 	if _, ok := h.rooms[roomId]; !ok {
 		h.rooms[roomId] = newRoom(roomId)
-		go h.rooms[roomId].run()
+		go func() {
+			h.rooms[roomId].run()
+			delete(h.rooms, roomId)
+		}()
 	}
+	h.mutex.Unlock()
 	serveWs(h.rooms[roomId], c.Response().Writer, c.Request())
 
 	return c.NoContent(http.StatusOK)

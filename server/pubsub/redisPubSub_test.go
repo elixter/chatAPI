@@ -58,7 +58,7 @@ func TestRedisPubSub_PublishSubscribe(t *testing.T) {
 				t.Error(err)
 			}
 
-			r.Subscribe(tt.args.handler)
+			r.Subscribe(tt.args.handler, nil)
 
 			err = r.Publish(msg)
 			if err != nil {

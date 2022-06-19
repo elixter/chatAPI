@@ -27,15 +27,25 @@ func newRoom(id int64) *room {
 }
 
 func (r *room) run() {
-	go pubsub.Subscribe(r.messageListening)
+	destruct := make(chan bool)
+	go pubsub.Subscribe(r.messageListening, destruct)
 
 	for {
 		select {
 		case client := <-r.register:
+			logger.Infof("Client [%d] entered room", client.id)
 			r.clients[client] = true
 		case client := <-r.unregister:
+			logger.Infof("Client [%d] leaved room", client.id)
 			close(client.send)
 			delete(r.clients, client)
+
+			if len(r.clients) == 0 {
+				destruct <- true
+				close(destruct)
+				logger.Info("Room socket destructed")
+				return
+			}
 		case message := <-r.broadcast:
 			for client := range r.clients {
 				select {

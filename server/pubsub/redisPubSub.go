@@ -49,26 +49,27 @@ func New() *RedisPubSub {
 }
 
 func (r *RedisPubSub) Publish(bytes []byte) error {
-	logger.Debugf("pub chan name : [%s]", cfg[publishConfigKey])
 	return r.client.Publish(r.ctx, cfg[publishConfigKey], bytes).Err()
 }
 
-func (r *RedisPubSub) Subscribe(handler SubscribeHandler) {
-	logger.Debugf("sub chan name : [%s]", cfg[listeningConfigKey])
+func (r *RedisPubSub) Subscribe(handler SubscribeHandler, destruct chan bool) {
 	sub := r.client.Subscribe(r.ctx, cfg[listeningConfigKey])
 	msgs := sub.Channel()
 
 	go func() {
 		defer sub.Close()
-		for msg := range msgs {
-			logger.Debug("sub got message")
-			err := handler([]byte(msg.Payload))
-			if err != nil {
-				if err != ErrMessageNoNeedToBroadcast {
-					logger.Error(err)
-					return
+		for {
+			select {
+			case <-destruct:
+				return
+			case msg := <-msgs:
+				err := handler([]byte(msg.Payload))
+				if err != nil {
+					if err != ErrMessageNoNeedToBroadcast {
+						logger.Error(err)
+					}
+					continue
 				}
-				continue
 			}
 		}
 	}()
