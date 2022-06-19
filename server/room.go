@@ -27,15 +27,25 @@ func newRoom(id int64) *room {
 }
 
 func (r *room) run() {
-	go pubsub.Subscribe(r.messageListening)
+	destruct := make(chan struct{})
+	go pubsub.Subscribe(r.messageListening, destruct)
 
 	for {
 		select {
 		case client := <-r.register:
+			logger.Infof("Client [%d] entered room", client.id)
 			r.clients[client] = true
 		case client := <-r.unregister:
+			logger.Infof("Client [%d] leaved room", client.id)
 			close(client.send)
 			delete(r.clients, client)
+
+			if len(r.clients) == 0 {
+				destruct <- struct{}{}
+				close(destruct)
+				logger.Info("Room socket destructed")
+				return
+			}
 		case message := <-r.broadcast:
 			for client := range r.clients {
 				select {
@@ -52,6 +62,7 @@ func (r *room) run() {
 			}
 		}
 	}
+
 }
 
 func (r *room) messageListening(msg []byte) error {
@@ -65,17 +76,7 @@ func (r *room) messageListening(msg []byte) error {
 	}
 
 	for client := range r.clients {
-		select {
-		case client.send <- msg:
-		default:
-			// if client channel has issue, disconnect client
-			logger.Debugf("client [%d] channel has problem", client.id)
-			delete(r.clients, client)
-			_, ok := <-client.send
-			if !ok {
-				close(client.send)
-			}
-		}
+		client.send <- msg
 	}
 
 	return nil
@@ -89,7 +90,7 @@ func (r *room) filterBroadcast(message []byte) (bool, error) {
 	}
 
 	if received.OriginServerId == serverId && received.SyncServerId.String() != "" {
-		logger.Debugf("message is same origin : [%s]", received.OriginServerId.String())
+		logger.Debugf("message from same origin : [%s]", received.OriginServerId.String())
 		return false, nil
 	}
 

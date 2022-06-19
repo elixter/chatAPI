@@ -9,8 +9,10 @@ import (
 type MessageType string
 
 const (
-	TypeChatText  MessageType = "chat_txt"
-	TypeChatImage MessageType = "chat_img"
+	TypeChatText      MessageType = "chat_txt"
+	TypeChatImage     MessageType = "chat_img"
+	TypeChatExitRoom  MessageType = "chat_exit"
+	TypeChatEnterRoom MessageType = "chat_enter"
 )
 
 type Message struct {

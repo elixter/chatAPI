@@ -74,7 +74,7 @@ func (c *Client) readPump() {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				logger.Errorf("error: %v", err)
+				logger.Errorf("Unexpected socket close : %v", err)
 			}
 			break
 		}
@@ -104,6 +104,11 @@ func (c *Client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.send:
+			if len(message) == 0 {
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The room closed the channel.

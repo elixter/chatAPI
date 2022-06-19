@@ -16,21 +16,30 @@ type RedisPubSub struct {
 	ctx    context.Context
 }
 
+const (
+	passwordConfigKey  = "password"
+	hostConfigKey      = "host"
+	portConfigKey      = "port"
+	databaseConfigKey  = "database"
+	listeningConfigKey = "listeningchannelname"
+	publishConfigKey   = "publishchannelname"
+)
+
 func init() {
 	cfg = config.Config().GetStringMapString("redis")
 }
 
 func New() *RedisPubSub {
 	addr := fmt.Sprintf("%s:%s", cfg["host"], cfg["port"])
-	database, err := strconv.ParseInt(cfg["database"], 10, 64)
+	database, err := strconv.ParseInt(cfg[databaseConfigKey], 10, 64)
 	if err != nil {
 		panic(err)
 	}
 
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     addr,
-		Password: cfg["password"], // no password set
-		DB:       int(database),   // use default DB
+		Password: cfg[passwordConfigKey], // no password set
+		DB:       int(database),          // use default DB
 	})
 
 	return &RedisPubSub{
@@ -40,24 +49,32 @@ func New() *RedisPubSub {
 }
 
 func (r *RedisPubSub) Publish(bytes []byte) error {
-	return r.client.Publish(r.ctx, cfg["publishChannelName"], bytes).Err()
+	return r.client.Publish(r.ctx, cfg[publishConfigKey], bytes).Err()
 }
 
-func (r *RedisPubSub) Subscribe(handler SubscribeHandler) {
-	sub := r.client.Subscribe(r.ctx, cfg["listeningChannelName"])
+func (r *RedisPubSub) Subscribe(handler SubscribeHandler, destruct chan struct{}) {
+	sub := r.client.Subscribe(r.ctx, cfg[listeningConfigKey])
 	msgs := sub.Channel()
 
 	go func() {
 		defer sub.Close()
-		for msg := range msgs {
-
-			err := handler([]byte(msg.Payload))
-			if err != nil {
-				if err != ErrMessageNoNeedToBroadcast {
-					logger.Error(err)
+		for {
+			select {
+			case <-destruct:
+				return
+			case msg := <-msgs:
+				err := handler([]byte(msg.Payload))
+				if err != nil {
+					if err != ErrMessageNoNeedToBroadcast {
+						logger.Error(err)
+					}
+					continue
 				}
-				continue
 			}
 		}
 	}()
+}
+
+func (r *RedisPubSub) Close() {
+	r.client.Close()
 }
