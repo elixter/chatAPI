@@ -89,7 +89,7 @@ func (r *room) filterBroadcast(message []byte) (bool, error) {
 	}
 
 	if received.OriginServerId == serverId && received.SyncServerId.String() != "" {
-		logger.Debugf("message is same origin : [%s]", received.OriginServerId.String())
+		logger.Debugf("message from same origin : [%s]", received.OriginServerId.String())
 		return false, nil
 	}
 
