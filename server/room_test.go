@@ -281,7 +281,7 @@ func Benchmark_room_filterBroadcast(b *testing.B) {
 		}
 	})
 
-	b.Run("benchmark data format", func(b *testing.B) {
+	b.Run("benchmark string data format", func(b *testing.B) {
 		broadcast, err := tests[0].fields.room.stringDataFiltering([]byte(strData))
 		if err != nil {
 			b.Error(err)
