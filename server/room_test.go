@@ -1,12 +1,16 @@
 package main
 
 import (
+	"chatting/logger"
 	"chatting/model"
 	pubsub2 "chatting/pubsub"
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -206,4 +210,101 @@ func Test_room_run(t *testing.T) {
 			pubsub.Close()
 		})
 	}
+}
+
+func Benchmark_room_filterBroadcast(b *testing.B) {
+	serverId = uuid.New()
+
+	type fields struct {
+		room room
+	}
+	type args struct {
+		msg model.Message
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+		{
+			name: "bench filterBroadcast",
+			fields: fields{
+				room: room{
+					id:         123,
+					clients:    make(map[*Client]bool),
+					broadcast:  make(chan []byte),
+					register:   make(chan *Client),
+					unregister: make(chan *Client),
+				},
+			},
+			args: args{
+				msg: model.Message{
+					Id:             123,
+					OriginServerId: serverId,
+					SyncServerId:   uuid.New(),
+					MessageType:    model.TypeChatText,
+					AuthorId:       123,
+					RoomId:         123,
+					Content:        "asdf",
+					CreateAt:       time.Now(),
+				},
+			},
+		},
+	}
+
+	msg := tests[0].args.msg
+	data, err := json.Marshal(tests[0].args.msg)
+	if err != nil {
+		b.Error(err)
+	}
+
+	strData := fmt.Sprintf(
+		"%d %s %s %s %d %d %s %s",
+		msg.Id,
+		msg.OriginServerId,
+		msg.SyncServerId,
+		msg.MessageType,
+		msg.AuthorId,
+		msg.RoomId,
+		msg.Content,
+		msg.CreateAt.String(),
+	)
+
+	b.Run("benchmark data format", func(b *testing.B) {
+		broadcast, err := tests[0].fields.room.filterBroadcast(data)
+		if err != nil {
+			b.Error(err)
+		}
+
+		if broadcast != false {
+			b.FailNow()
+		}
+	})
+
+	b.Run("benchmark data format", func(b *testing.B) {
+		broadcast, err := tests[0].fields.room.stringDataFiltering([]byte(strData))
+		if err != nil {
+			b.Error(err)
+		}
+
+		if broadcast != false {
+			b.FailNow()
+		}
+	})
+}
+
+func (r *room) stringDataFiltering(message []byte) (bool, error) {
+	msg := string(message[:])
+	tokenized := strings.Split(msg, " ")
+
+	if tokenized[1] == serverId.String() && tokenized[2] != "" {
+		logger.Debugf("message from same origin : [%s]", tokenized[1])
+		return false, nil
+	}
+
+	if tokenized[5] != strconv.FormatInt(r.id, 10) {
+		return false, nil
+	}
+
+	return true, nil
 }
