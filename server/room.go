@@ -9,6 +9,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+type ctxKey int
+
+const (
+	ctxRoomId ctxKey = iota
+)
+
 type Room struct {
 	Id         int64
 	Clients    map[*Client]bool
@@ -31,6 +37,7 @@ func newRoom(id int64) *Room {
 
 func (r *Room) run() {
 	ctx, cancel := context.WithCancel(r.ctx)
+	ctx = context.WithValue(ctx, ctxRoomId, r.Id)
 	go pubsub.Subscribe(r.messageListening, ctx)
 
 	for {
@@ -45,7 +52,7 @@ func (r *Room) run() {
 
 			if len(r.Clients) == 0 {
 				cancel()
-				logger.Info("Room socket destructed")
+				logger.Infof("Room[%d] socket closed", ctx.Value(ctxRoomId))
 				return
 			}
 		case message := <-r.Broadcast:
