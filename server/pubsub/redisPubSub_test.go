@@ -1,10 +1,12 @@
 package pubsub
 
 import (
+	"chatting/logger"
 	"chatting/model"
 	"encoding/json"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/goleak"
 	"testing"
 	"time"
 )
@@ -50,32 +52,35 @@ func TestRedisPubSub_PublishSubscribe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			defer goleak.VerifyNone(t)
+
 			r := New()
 			ch = make(chan model.Message)
+			destruct := make(chan struct{})
 
 			msg, err := json.Marshal(tt.message)
 			if err != nil {
 				t.Error(err)
 			}
 
-			r.Subscribe(tt.args.handler)
+			r.Subscribe(tt.args.handler, destruct)
 
 			err = r.Publish(msg)
 			if err != nil {
 				t.Error(err)
 			}
 
-			for {
-				select {
-				case msg, ok := <-ch:
-					if !ok {
-						return
-					}
+			msg2 := <-ch
+			if !assert.Equal(t, tt.message, msg2) {
+				t.FailNow()
+			}
 
-					if !assert.Equal(t, tt.message, msg) {
-						t.FailNow()
-					}
-				}
+			destruct <- struct{}{}
+			r.client.Close()
+
+			err = goleak.Find()
+			if err != nil {
+				logger.Error(err)
 			}
 		})
 	}

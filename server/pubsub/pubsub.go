@@ -1,6 +1,9 @@
 package pubsub
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
 type SubscribeHandler func([]byte) error
 
@@ -10,5 +13,6 @@ var (
 
 type PubSub interface {
 	Publish([]byte) error
-	Subscribe(handler SubscribeHandler)
+	Subscribe(handler SubscribeHandler, ctx context.Context)
+	Close()
 }

@@ -37,11 +37,11 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// Client is a middleman between the websocket connection and the room.
+// Client is a middleman between the websocket connection and the Room.
 type Client struct {
 	id int64
 
-	room *room
+	room *Room
 
 	// The websocket connection.
 	conn *websocket.Conn
@@ -50,14 +50,14 @@ type Client struct {
 	send chan []byte
 }
 
-// readPump pumps messages from the websocket connection to the room.
+// readPump pumps messages from the websocket connection to the Room.
 //
 // The application runs readPump in a per-connection goroutine. The application
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
 func (c *Client) readPump() {
 	defer func() {
-		c.room.unregister <- c
+		c.room.Unregister <- c
 		c.conn.Close()
 	}()
 
@@ -74,7 +74,7 @@ func (c *Client) readPump() {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				logger.Errorf("error: %v", err)
+				logger.Errorf("Unexpected socket close : %v", err)
 			}
 			break
 		}
@@ -85,12 +85,12 @@ func (c *Client) readPump() {
 			continue
 		}
 
-		//c.room.broadcast <- broadcastMsg
+		//c.Room.Broadcast <- broadcastMsg
 
 	}
 }
 
-// writePump pumps messages from the room to the websocket connection.
+// writePump pumps messages from the Room to the websocket connection.
 //
 // A goroutine running writePump is started for each connection. The
 // application ensures that there is at most one writer to a connection by
@@ -104,9 +104,14 @@ func (c *Client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.send:
+			if len(message) == 0 {
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				// The room closed the channel.
+				// The Room closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
@@ -163,7 +168,7 @@ func (c *Client) messageProcessing(message []byte) error {
 		return err
 	}
 
-	c.room.broadcast <- sentData
+	c.room.Broadcast <- sentData
 	err = pubsub.Publish(sentData)
 	if err != nil {
 		logger.Errorf("message publishing failed")

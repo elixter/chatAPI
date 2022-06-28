@@ -1,20 +1,24 @@
 package main
 
 import (
+	"chatting/logger"
 	"github.com/labstack/echo/v4"
 	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
+	"sync"
 )
 
 type Hub struct {
-	rooms map[int64]*room
+	mutex *sync.RWMutex
+	rooms map[int64]*Room
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		rooms: make(map[int64]*room),
+		mutex: &sync.RWMutex{},
+		rooms: make(map[int64]*Room),
 	}
 }
 
@@ -25,17 +29,24 @@ func (h *Hub) WsHandler(c echo.Context) error {
 			"error": err,
 		})
 	}
+
+	h.mutex.Lock()
 	if _, ok := h.rooms[roomId]; !ok {
 		h.rooms[roomId] = newRoom(roomId)
-		go h.rooms[roomId].run()
+		go func() {
+			h.rooms[roomId].run()
+			logger.Infof("destruct Room [%d]", roomId)
+			delete(h.rooms, roomId)
+		}()
 	}
+	h.mutex.Unlock()
 	serveWs(h.rooms[roomId], c.Response().Writer, c.Request())
 
 	return c.NoContent(http.StatusOK)
 }
 
 // serveWs handles websocket requests from the peer.
-func serveWs(room *room, w http.ResponseWriter, r *http.Request) {
+func serveWs(room *Room, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -43,7 +54,7 @@ func serveWs(room *room, w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client{id: rand.Int63(), room: room, conn: conn, send: make(chan []byte, 256)}
-	client.room.register <- client
+	client.room.Register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
 	// new goroutines.
