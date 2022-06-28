@@ -30,7 +30,7 @@ func main() {
 	e = echo.New()
 	hub := NewHub()
 	serverId = uuid.New()
-	e.Logger.Infof("server id : [%s]", serverId.String())
+	e.Logger.Infof("server Id : [%s]", serverId.String())
 
 	pubsub = pubsub2.New()
 	defer pubsub.Close()
