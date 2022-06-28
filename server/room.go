@@ -4,6 +4,7 @@ import (
 	"chatting/logger"
 	"chatting/model"
 	pubsub2 "chatting/pubsub"
+	"context"
 	"encoding/json"
 	"github.com/pkg/errors"
 )
@@ -14,6 +15,7 @@ type Room struct {
 	Broadcast  chan []byte
 	Register   chan *Client
 	Unregister chan *Client
+	ctx        context.Context
 }
 
 func newRoom(id int64) *Room {
@@ -23,12 +25,13 @@ func newRoom(id int64) *Room {
 		Broadcast:  make(chan []byte),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
+		ctx:        context.Background(),
 	}
 }
 
 func (r *Room) run() {
-	destruct := make(chan struct{})
-	go pubsub.Subscribe(r.messageListening, destruct)
+	ctx, cancel := context.WithCancel(r.ctx)
+	go pubsub.Subscribe(r.messageListening, ctx)
 
 	for {
 		select {
@@ -41,8 +44,7 @@ func (r *Room) run() {
 			delete(r.Clients, client)
 
 			if len(r.Clients) == 0 {
-				destruct <- struct{}{}
-				close(destruct)
+				cancel()
 				logger.Info("Room socket destructed")
 				return
 			}

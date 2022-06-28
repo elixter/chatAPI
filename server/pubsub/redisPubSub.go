@@ -52,7 +52,7 @@ func (r *RedisPubSub) Publish(bytes []byte) error {
 	return r.client.Publish(r.ctx, cfg[publishConfigKey], bytes).Err()
 }
 
-func (r *RedisPubSub) Subscribe(handler SubscribeHandler, destruct chan struct{}) {
+func (r *RedisPubSub) Subscribe(handler SubscribeHandler, ctx context.Context) {
 	sub := r.client.Subscribe(r.ctx, cfg[listeningConfigKey])
 	msgs := sub.Channel()
 
@@ -60,7 +60,7 @@ func (r *RedisPubSub) Subscribe(handler SubscribeHandler, destruct chan struct{}
 		defer sub.Close()
 		for {
 			select {
-			case <-destruct:
+			case <-ctx.Done():
 				return
 			case msg := <-msgs:
 				err := handler([]byte(msg.Payload))
