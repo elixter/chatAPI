@@ -64,10 +64,10 @@ func BenchmarkClient_messageProcessing(b *testing.B) {
 		},
 	}
 	for _, tt := range tests {
-		testRoom.clients[&tt.fields.client] = true
+		testRoom.Clients[&tt.fields.client] = true
 		b.Run(tt.name, func(b *testing.B) {
 			go func() {
-				<-testRoom.broadcast
+				<-testRoom.Broadcast
 			}()
 
 			err := tt.fields.client.messageProcessing(tt.args.message)
@@ -79,7 +79,7 @@ func BenchmarkClient_messageProcessing(b *testing.B) {
 
 	b.Run("bench string data", func(b *testing.B) {
 		go func() {
-			<-testRoom.broadcast
+			<-testRoom.Broadcast
 		}()
 
 		err := tests[0].fields.client.stringMessageProcessing([]byte(strData))
@@ -104,7 +104,7 @@ func (c *Client) stringMessageProcessing(message []byte) error {
 	)
 	sentData := []byte(strSentData)
 
-	c.room.broadcast <- sentData
+	c.room.Broadcast <- sentData
 	err := pubsub.Publish(sentData)
 	if err != nil {
 		logger.Errorf("message publishing failed")

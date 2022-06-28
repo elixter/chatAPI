@@ -37,12 +37,12 @@ func Test_room_filterBroadcast(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &room{
-				id:         tt.fields.id,
-				clients:    tt.fields.clients,
-				broadcast:  tt.fields.broadcast,
-				register:   tt.fields.register,
-				unregister: tt.fields.unregister,
+			r := &Room{
+				Id:         tt.fields.id,
+				Clients:    tt.fields.clients,
+				Broadcast:  tt.fields.broadcast,
+				Register:   tt.fields.register,
+				Unregister: tt.fields.unregister,
 			}
 			got, err := r.filterBroadcast(tt.args.message)
 			if (err != nil) != tt.wantErr {
@@ -60,7 +60,7 @@ func Test_room_messageListening(t *testing.T) {
 	serverId = uuid.New()
 
 	type fields struct {
-		room room
+		room Room
 	}
 	type args struct {
 		msg model.Message
@@ -75,12 +75,12 @@ func Test_room_messageListening(t *testing.T) {
 		{
 			name: "Same servierId Test",
 			fields: fields{
-				room{
-					id:         123,
-					clients:    make(map[*Client]bool),
-					broadcast:  make(chan []byte),
-					register:   make(chan *Client),
-					unregister: make(chan *Client),
+				Room{
+					Id:         123,
+					Clients:    make(map[*Client]bool),
+					Broadcast:  make(chan []byte),
+					Register:   make(chan *Client),
+					Unregister: make(chan *Client),
 				},
 			},
 			args: args{
@@ -100,12 +100,12 @@ func Test_room_messageListening(t *testing.T) {
 		{
 			name: "diff serverId Test",
 			fields: fields{
-				room{
-					id:         123,
-					clients:    make(map[*Client]bool),
-					broadcast:  make(chan []byte),
-					register:   make(chan *Client),
-					unregister: make(chan *Client),
+				Room{
+					Id:         123,
+					Clients:    make(map[*Client]bool),
+					Broadcast:  make(chan []byte),
+					Register:   make(chan *Client),
+					Unregister: make(chan *Client),
 				},
 			},
 			args: args{
@@ -134,7 +134,7 @@ func Test_room_messageListening(t *testing.T) {
 				conn: nil,
 				send: make(chan []byte),
 			}
-			r.clients[newClient] = true
+			r.Clients[newClient] = true
 
 			bData, err := json.Marshal(tt.args.msg)
 			if err != nil {
@@ -170,7 +170,7 @@ func Test_room_run(t *testing.T) {
 	pubsub = pubsub2.New()
 
 	type fields struct {
-		room room
+		room Room
 	}
 	tests := []struct {
 		name   string
@@ -179,12 +179,12 @@ func Test_room_run(t *testing.T) {
 		{
 			name: "leak test",
 			fields: fields{
-				room{
-					id:         123,
-					clients:    make(map[*Client]bool),
-					broadcast:  make(chan []byte),
-					register:   make(chan *Client),
-					unregister: make(chan *Client),
+				Room{
+					Id:         123,
+					Clients:    make(map[*Client]bool),
+					Broadcast:  make(chan []byte),
+					Register:   make(chan *Client),
+					Unregister: make(chan *Client),
 				},
 			},
 		},
@@ -201,10 +201,10 @@ func Test_room_run(t *testing.T) {
 				conn: nil,
 				send: make(chan []byte),
 			}
-			r.clients[newClient] = true
+			r.Clients[newClient] = true
 			go r.run()
 
-			r.unregister <- newClient
+			r.Unregister <- newClient
 			<-newClient.send
 
 			pubsub.Close()
@@ -216,7 +216,7 @@ func Benchmark_room_filterBroadcast(b *testing.B) {
 	serverId = uuid.New()
 
 	type fields struct {
-		room room
+		room Room
 	}
 	type args struct {
 		msg model.Message
@@ -229,12 +229,12 @@ func Benchmark_room_filterBroadcast(b *testing.B) {
 		{
 			name: "bench filterBroadcast",
 			fields: fields{
-				room: room{
-					id:         123,
-					clients:    make(map[*Client]bool),
-					broadcast:  make(chan []byte),
-					register:   make(chan *Client),
-					unregister: make(chan *Client),
+				room: Room{
+					Id:         123,
+					Clients:    make(map[*Client]bool),
+					Broadcast:  make(chan []byte),
+					Register:   make(chan *Client),
+					Unregister: make(chan *Client),
 				},
 			},
 			args: args{
@@ -293,7 +293,7 @@ func Benchmark_room_filterBroadcast(b *testing.B) {
 	})
 }
 
-func (r *room) stringDataFiltering(message []byte) (bool, error) {
+func (r *Room) stringDataFiltering(message []byte) (bool, error) {
 	msg := string(message[:])
 	tokenized := strings.Split(msg, " ")
 
@@ -302,7 +302,7 @@ func (r *room) stringDataFiltering(message []byte) (bool, error) {
 		return false, nil
 	}
 
-	if tokenized[5] != strconv.FormatInt(r.id, 10) {
+	if tokenized[5] != strconv.FormatInt(r.Id, 10) {
 		return false, nil
 	}
 

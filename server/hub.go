@@ -12,13 +12,13 @@ import (
 
 type Hub struct {
 	mutex *sync.RWMutex
-	rooms map[int64]*room
+	rooms map[int64]*Room
 }
 
 func NewHub() *Hub {
 	return &Hub{
 		mutex: &sync.RWMutex{},
-		rooms: make(map[int64]*room),
+		rooms: make(map[int64]*Room),
 	}
 }
 
@@ -35,7 +35,7 @@ func (h *Hub) WsHandler(c echo.Context) error {
 		h.rooms[roomId] = newRoom(roomId)
 		go func() {
 			h.rooms[roomId].run()
-			logger.Infof("destruct room [%d]", roomId)
+			logger.Infof("destruct Room [%d]", roomId)
 			delete(h.rooms, roomId)
 		}()
 	}
@@ -46,7 +46,7 @@ func (h *Hub) WsHandler(c echo.Context) error {
 }
 
 // serveWs handles websocket requests from the peer.
-func serveWs(room *room, w http.ResponseWriter, r *http.Request) {
+func serveWs(room *Room, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -54,7 +54,7 @@ func serveWs(room *room, w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client{id: rand.Int63(), room: room, conn: conn, send: make(chan []byte, 256)}
-	client.room.register <- client
+	client.room.Register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
 	// new goroutines.
