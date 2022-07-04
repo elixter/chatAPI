@@ -43,7 +43,10 @@ func main() {
 		return nil
 	})
 
-	e.GET("room/:id", EnterRoom)
+	e.GET("/room/:id", EnterRoom)
 	e.GET("/ws/:roomId", hub.WsHandler)
+
+	e.POST("/room", CreateRoom)
+
 	e.Logger.Fatal(e.Start(":8080"))
 }
