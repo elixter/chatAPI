@@ -4,6 +4,7 @@ import (
 	pubsub2 "chatting/pubsub"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"log"
 	"net/http"
 )
@@ -32,6 +33,8 @@ func main() {
 	serverId = uuid.New()
 	e.Logger.Infof("server Id : [%s]", serverId.String())
 
+	e.Use(middleware.Logger())
+
 	pubsub = pubsub2.New()
 	defer pubsub.Close()
 
@@ -40,6 +43,7 @@ func main() {
 		return nil
 	})
 
+	e.GET("room/:id", EnterRoom)
 	e.GET("/ws/:roomId", hub.WsHandler)
 	e.Logger.Fatal(e.Start(":8080"))
 }

@@ -43,7 +43,8 @@
             };
 
             if (window["WebSocket"]) {
-                conn = new WebSocket("ws://" + "localhost:8080" + "/ws/123");
+                roomId = location.pathname.split('/')[2];
+                conn = new WebSocket("ws://" + "localhost:8080" + "/ws/" + roomId);
                 conn.onclose = function (evt) {
                     var item = document.createElement("div");
                     item.innerHTML = "<b>Connection closed.</b>";
