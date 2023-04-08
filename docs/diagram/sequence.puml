@@ -1,8 +1,8 @@
 @startuml
-title Socket-Session-Io
+title 세션 생성
 
 box "외부"
-participant 외부서버
+participant 외부서버 as server
 participant 외부클라이언트 as client
 end box
 
@@ -27,9 +27,17 @@ activate api
 
 api -> api: sessionKey 생성: "serviceName:UUID"
 api -> kafka: <b>CRT_SESS</b> 이벤트 발행
+note left
+    <i><b>Message:</b></i>
+    {
+        "eventType": "CRT_SESS",
+        "eventId": "CRT_SESS:serviceName:clientId"
+    }
+end note
+
 kafka -> sub: consume
 activate sub
-
+sub -> sub: redis에 sessionKey, clientId 저장
 
 deactivate sub
 
