@@ -1,4 +1,48 @@
 @startuml
 title Socket-Session-Io
 
+box "외부"
+participant 외부서버
+participant 외부클라이언트 as client
+end box
+
+box "Socket-Session-Io" #6bedc8
+participant API as api
+participant Kafka as kafka
+participant Subscriber as sub
+end box
+
+client -> api: 세션 생성 요청
+note right
+    <i><b>Request:</b></i>
+    POST /session
+    {
+        "serviceName": <serviceName>,
+        "clientId": <clientId> // 유니크값
+    }
+
+end note
+activate client
+activate api
+
+api -> api: sessionKey 생성: "serviceName:UUID"
+api -> kafka: <b>CRT_SESS</b> 이벤트 발행
+kafka -> sub: consume
+activate sub
+
+
+deactivate sub
+
+api --[#blue]> client: 세션 연결 성공
+note left
+    <i><b>Response:</b></i>
+    {
+        "sessionKey": <serviceName:UUID>
+    }
+end note
+deactivate client
+deactivate api
+
+newpage 외부 서버 to 외부 클라이언트 메세지 전송
+
 @enduml
