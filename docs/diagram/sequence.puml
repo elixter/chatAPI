@@ -12,45 +12,35 @@ participant Kafka as kafka
 participant Subscriber as sub
 end box
 
-client -> api: 세션 생성 요청
-note right
-    <i><b>Request:</b></i>
-    POST /session
-    {
-        "serviceName": <serviceName>,
-        "clientId": <clientId> // 유니크값
-    }
-
-end note
-activate client
-activate api
-
-api -> api: sessionKey 생성: "serviceName:UUID"
-api -> kafka: <b>CRT_SESS</b> 이벤트 발행
-note left
-    <i><b>Message:</b></i>
-    {
-        "eventType": "CRT_SESS",
-        "eventId": "CRT_SESS:serviceName:clientId"
-    }
-end note
-
-kafka -> sub: consume
-activate sub
-sub -> sub: redis에 sessionKey, clientId 저장
-
-deactivate sub
-
-api --[#blue]> client: 세션 연결 성공
-note left
-    <i><b>Response:</b></i>
-    {
-        "sessionKey": <serviceName:UUID>
-    }
-end note
-deactivate client
-deactivate api
-
 newpage 외부 서버 to 외부 클라이언트 메세지 전송
+
+alt API 호출방식
+    server -> api: 메세지 전송 요청
+    note left
+        <i><b>Request:</b></i>
+        POST /api/message/{roomId}
+        {
+            "authorId": <메세지 작성자 ID>,
+            "messageType": <메세지 타입> // CRT, DEL, LEV, ENT, MSG
+            "message": <string>
+        }
+    end note
+
+    api -> api: 메세지 타입에 따른 방 상태 확인
+    api --[#blue]> server: 응답
+    note right
+        <i><b>Response:</b></i>
+        200 OK
+        {
+            "result": <String> // FAIL, SUCCESS
+            "resultMessage": <String> // FAIL일 경우 설명
+        }
+    end note
+
+end alt
+api -> api: redis에 메세지 저장
+api -> kafka: 메세지 이벤트 발행
+kafka -> api: 메세지 컨슈밍
+api --[#blue]> client: 메세지 broadcast
 
 @enduml
